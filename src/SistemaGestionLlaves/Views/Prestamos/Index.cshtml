@@ -1,0 +1,233 @@
+@{
+    ViewData["Title"] = "Préstamos";
+}
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-arrow-left-right me-2" style="color:#0369a1;"></i>Gestión de Préstamos
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Administra los préstamos activos y el historial</p>
+    </div>
+    <a asp-controller="Prestamos" asp-action="Crear"
+       class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2"
+       style="background:#0369a1; border-color:#0369a1; border-radius:12px; font-weight:600;">
+        <i class="bi bi-plus-lg"></i> Nuevo Préstamo
+    </a>
+</div>
+
+<!-- Toast -->
+<div id="toast-box" class="position-fixed top-0 end-0 p-3" style="z-index:9999;"></div>
+
+<!-- Filtros -->
+<div class="ui-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label fw-600"
+                   style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Estado</label>
+            <select id="filtroEstado" class="form-select"
+                    style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos</option>
+                <option value="A">Activo</option>
+                <option value="D">Devuelto</option>
+                <option value="V">Vencido</option>
+                <option value="C">Cancelado</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button onclick="cargarPrestamos()" class="btn px-4 py-2"
+                    style="background:#0369a1; color:white; border-radius:12px; font-weight:600; border:none;">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+            <button onclick="document.getElementById('filtroEstado').value=''; cargarPrestamos();"
+                    class="btn px-4 py-2"
+                    style="background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:600; border:none;">
+                <i class="bi bi-x-circle me-1"></i>Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="ui-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Lista de Préstamos</h3>
+        <span id="totalResultados" style="color:#94a3b8; font-size:0.85rem;"></span>
+    </div>
+
+    <div id="loadingSpinner" class="text-center py-5" style="display:none; color:#94a3b8;">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+    </div>
+
+    <div id="emptyState" class="text-center py-5" style="display:none; color:#94a3b8;">
+        <i class="bi bi-arrow-left-right" style="font-size:3rem; display:block; margin-bottom:12px;"></i>
+        <p class="mb-0">No se encontraron préstamos con los criterios aplicados.</p>
+    </div>
+
+    <div class="table-responsive" id="tablaWrapper" style="display:none;">
+        <table class="table table-borderless mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Llave</th>
+                    <th>Persona</th>
+                    <th>Fecha Préstamo</th>
+                    <th>Devolución Esperada</th>
+                    <th>Estado</th>
+                    <th style="text-align:right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaPrestamos"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Confirmar Devolución -->
+<div class="modal fade" id="modalDevolver" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:none;">
+            <div class="modal-header" style="border-bottom:1px solid #e2e8f0;">
+                <h5 class="modal-title fw-bold" style="color:#0f172a;">
+                    <i class="bi bi-arrow-return-left me-2" style="color:#0369a1;"></i>Confirmar Devolución
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="color:#334155;" class="mb-0">
+                    ¿Confirmar la devolución del préstamo <strong id="modalPrestamoId"></strong>?
+                    <br><small style="color:#64748b;">Esta acción no se puede revertir.</small>
+                </p>
+            </div>
+            <div class="modal-footer" style="border-top:1px solid #e2e8f0; gap:8px;">
+                <button type="button" class="btn px-4"
+                        style="background:#f1f5f9; color:#64748b; border-radius:10px; border:none;"
+                        data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarDevolver" class="btn px-4"
+                        style="background:#0369a1; color:white; border-radius:10px; border:none; font-weight:600;">
+                    <i class="bi bi-check-lg me-1"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    let idParaDevolver = null;
+
+    function estadoBadge(e) {
+        const map = {
+            'A': ['#fef3c7','#92400e','arrow-left-right','Activo'],
+            'D': ['#dcfce7','#166534','check-circle','Devuelto'],
+            'V': ['#fee2e2','#991b1b','exclamation-circle','Vencido'],
+            'C': ['#f1f5f9','#64748b','x-circle','Cancelado']
+        };
+        const [bg, fg, icon, label] = map[e] ?? ['#f1f5f9','#64748b','question','?'];
+        return `<span class="status-badge" style="background:${bg}; color:${fg};">
+                    <i class="bi bi-${icon} me-1"></i>${label}
+                </span>`;
+    }
+
+    function fmtFecha(f) {
+        if (!f) return '<span style="color:#94a3b8;">—</span>';
+        return new Date(f).toLocaleString('es-BO', { dateStyle:'short', timeStyle:'short' });
+    }
+
+    async function cargarPrestamos() {
+        const estado = document.getElementById('filtroEstado').value;
+        const url = `/api/prestamos${estado ? '?estado=' + estado : ''}`;
+
+        document.getElementById('loadingSpinner').style.display = '';
+        document.getElementById('tablaWrapper').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Error al obtener datos');
+            const data = await res.json();
+
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('totalResultados').textContent = `${data.length} resultado(s)`;
+
+            if (data.length === 0) {
+                document.getElementById('emptyState').style.display = '';
+                return;
+            }
+
+            const tbody = document.getElementById('tablaPrestamos');
+            tbody.innerHTML = data.map(p => `
+                <tr>
+                    <td style="color:#94a3b8; font-size:0.85rem;">#${p.idPrestamo}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div style="width:36px; height:36px; background:#e0f2fe; border-radius:10px;
+                                        display:flex; align-items:center; justify-content:center; color:#0369a1;">
+                                <i class="bi bi-key"></i>
+                            </div>
+                            <span class="fw-bold" style="color:#0f172a;">${p.llave?.codigo ?? '—'}</span>
+                        </div>
+                    </td>
+                    <td style="color:#334155;">${p.persona?.nombre ?? '—'}</td>
+                    <td style="color:#334155; font-size:0.875rem;">${fmtFecha(p.fechaHoraPrestamo)}</td>
+                    <td style="color:#334155; font-size:0.875rem;">${fmtFecha(p.fechaHoraDevolucionEsperada)}</td>
+                    <td>${estadoBadge(p.estado)}</td>
+                    <td>
+                        <div class="d-flex gap-2 justify-content-end">
+                            ${p.estado === 'A' ? `
+                            <button onclick="abrirModalDevolver(${p.idPrestamo})"
+                                    class="btn btn-sm" title="Registrar devolución"
+                                    style="background:#dcfce7; color:#166534; border-radius:8px; border:none; padding:6px 10px;">
+                                <i class="bi bi-arrow-return-left"></i>
+                            </button>` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            document.getElementById('tablaWrapper').style.display = '';
+        } catch (err) {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            mostrarToast('Error al cargar préstamos: ' + err.message, false);
+        }
+    }
+
+    function abrirModalDevolver(id) {
+        idParaDevolver = id;
+        document.getElementById('modalPrestamoId').textContent = `#${id}`;
+        new bootstrap.Modal(document.getElementById('modalDevolver')).show();
+    }
+
+    document.getElementById('btnConfirmarDevolver').addEventListener('click', async () => {
+        bootstrap.Modal.getInstance(document.getElementById('modalDevolver'))?.hide();
+        try {
+            const res = await fetch(`/api/prestamos/${idParaDevolver}/devolver`, { method: 'PATCH' });
+            const json = await res.json();
+            mostrarToast(json.mensaje, json.exito);
+            if (json.exito) cargarPrestamos();
+        } catch {
+            mostrarToast('Error de conexión al registrar devolución.', false);
+        }
+    });
+
+    function mostrarToast(msg, exito) {
+        const id = 'toast-' + Date.now();
+        const color = exito ? '#dcfce7' : '#fee2e2';
+        const textColor = exito ? '#166534' : '#991b1b';
+        const icon = exito ? 'check-circle-fill' : 'exclamation-circle-fill';
+        const box = document.getElementById('toast-box');
+        box.insertAdjacentHTML('beforeend', `
+            <div id="${id}" class="toast show align-items-center"
+                 style="background:${color}; color:${textColor}; border:none; border-radius:12px; min-width:280px; margin-bottom:8px;">
+                <div class="d-flex align-items-center gap-2 p-3">
+                    <i class="bi bi-${icon}"></i>
+                    <span>${msg}</span>
+                    <button type="button" class="btn-close ms-auto" onclick="this.closest('.toast').remove()"></button>
+                </div>
+            </div>`);
+        setTimeout(() => document.getElementById(id)?.remove(), 4000);
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarPrestamos);
+</script>
+}

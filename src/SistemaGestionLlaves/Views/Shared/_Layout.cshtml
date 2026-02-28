@@ -24,7 +24,8 @@
             <a href="/" class="menu-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Home" ? "active" : "")">
                 <i class="bi bi-grid-1x2"></i> Dashboard
             </a>
-            <a href="#" class="menu-item">
+            <a asp-controller="Prestamos" asp-action="Index"
+               class="menu-item @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Prestamos" ? "active" : "")">
                 <i class="bi bi-arrow-left-right"></i> Préstamos
             </a>
             <a href="#" class="menu-item">
