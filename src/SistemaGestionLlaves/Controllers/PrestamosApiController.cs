@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaGestionLlaves.Data;
@@ -29,6 +30,7 @@ public record PrestamoRequest(
 [ApiController]
 [Route("api/prestamos")]
 [Produces("application/json")]
+[Authorize(Roles = "Administrador,Operador")]
 public class PrestamosApiController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

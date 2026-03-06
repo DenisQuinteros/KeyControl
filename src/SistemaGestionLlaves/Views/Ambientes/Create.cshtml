@@ -10,7 +10,7 @@
             <h4>Registrar Nuevo Ambiente</h4>
         </div>
         <div class="card-body">
-            <form asp-action="Create">
+            <form asp-action="Create" method="post">
                 <div class="mb-3">
                     <label asp-for="Nombre" class="form-label"></label>
                     <input asp-for="Nombre" class="form-control" />

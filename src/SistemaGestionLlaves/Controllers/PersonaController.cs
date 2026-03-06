@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaGestionLlaves.Data;
@@ -5,6 +6,7 @@ using SistemaGestionLlaves.Models;
 
 namespace SistemaGestionLlaves.Controllers
 {
+    [Authorize(Roles = "Administrador, Operador")]
     public class PersonaController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -20,6 +22,7 @@ namespace SistemaGestionLlaves.Controllers
         public async Task<IActionResult> Index(string buscar, int page = 1, int pageSize = 10)
         {
             var personas = from p in _context.Personas
+                           where p.Estado == "A"
                            select p;
 
             if (!string.IsNullOrEmpty(buscar))
@@ -77,6 +80,12 @@ namespace SistemaGestionLlaves.Controllers
         {
             if (ModelState.IsValid)
             {
+                if (await _context.Personas.AnyAsync(p => p.Ci == persona.Ci))
+                {
+                    ModelState.AddModelError("Ci", "El CI ya está registrado");
+                    return View(persona);
+                }
+
                 persona.Estado = "A";
                 _context.Add(persona);
                 await _context.SaveChangesAsync();
@@ -151,7 +160,8 @@ namespace SistemaGestionLlaves.Controllers
             var persona = await _context.Personas.FindAsync(id);
             if (persona != null)
             {
-                _context.Personas.Remove(persona);
+                persona.Estado = "I";
+                _context.Personas.Update(persona);
                 await _context.SaveChangesAsync();
             }
 

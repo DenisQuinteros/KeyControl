@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaGestionLlaves.Data;
@@ -7,6 +8,7 @@ namespace SistemaGestionLlaves.Controllers
 {
     [Route("api/reservas")]
     [ApiController]
+    [Authorize(Roles = "Administrador,Operador")]
     public class ApiReservasController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

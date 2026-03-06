@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +11,7 @@ namespace SistemaGestionLlaves.Controllers;
 /// Controlador MVC para las vistas de gestión de Llaves.
 /// Rutas: /Llaves
 /// </summary>
+[Authorize(Roles = "Administrador, Operador")]
 public class LlavesViewController : Controller
 {
     private readonly ApplicationDbContext _context;
@@ -24,6 +26,7 @@ public class LlavesViewController : Controller
     {
         var query = _context.Llaves
             .Include(l => l.Ambiente)
+            .Where(l => l.Estado != "I")
             .AsQueryable();
 
         if (idAmbiente.HasValue)

@@ -11,7 +11,7 @@ namespace SistemaGestionLlaves.Controllers;
 /// Controlador responsable de las operaciones CRUD para la entidad Usuario.
 /// Requiere que el usuario esté autenticado para acceder.
 /// </summary>
-[Authorize]
+[Authorize(Roles = "Administrador")]
 public class UsuariosController : Controller
 {
     private readonly ApplicationDbContext _context;
@@ -31,6 +31,7 @@ public class UsuariosController : Controller
         var query = _context.Usuarios
             .Include(u => u.Persona)
             .Include(u => u.Rol)
+            .Where(u => u.Estado == "A")
             .AsQueryable();
 
         int totalItems = await query.CountAsync();
@@ -98,6 +99,14 @@ public class UsuariosController : Controller
     {
         if (ModelState.IsValid)
         {
+            if (await _context.Usuarios.AnyAsync(u => u.NombreUsuario == usuario.NombreUsuario))
+            {
+                ModelState.AddModelError("NombreUsuario", "El usuario ya existe");
+                ViewData["IdPersona"] = new SelectList(_context.Personas.OrderBy(p => p.Nombres).ThenBy(p => p.Apellidos), "IdPersona", "NombreCompleto", usuario.IdPersona);
+                ViewData["IdRol"] = new SelectList(_context.Roles.OrderBy(r => r.NombreRol), "IdRol", "NombreRol", usuario.IdRol);
+                return View(usuario);
+            }
+
             usuario.FechaInicio = DateTime.UtcNow;
 
             // Hashear la contraseña antes de guardarla en la BD
@@ -112,7 +121,7 @@ public class UsuariosController : Controller
         }
         
         // Si hay errores de validación, recargar las listas desplegables
-        ViewData["IdPersona"] = new SelectList(_context.Personas, "IdPersona", "NombreCompleto", usuario.IdPersona);
+        ViewData["IdPersona"] = new SelectList(_context.Personas.OrderBy(p => p.Nombres).ThenBy(p => p.Apellidos), "IdPersona", "NombreCompleto", usuario.IdPersona);
         ViewData["IdRol"] = new SelectList(_context.Roles.OrderBy(r => r.NombreRol), "IdRol", "NombreRol", usuario.IdRol);
         return View(usuario);
     }
@@ -242,7 +251,8 @@ public class UsuariosController : Controller
         var usuario = await _context.Usuarios.FindAsync(id);
         if (usuario != null)
         {
-            _context.Usuarios.Remove(usuario);
+            usuario.Estado = "I";
+            _context.Usuarios.Update(usuario);
         }
 
         await _context.SaveChangesAsync();

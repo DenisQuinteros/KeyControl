@@ -6,7 +6,7 @@ using SistemaGestionLlaves.Models;
 
 namespace SistemaGestionLlaves.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Administrador")]
 public class RolController : Controller
 {
     private readonly ApplicationDbContext _context;

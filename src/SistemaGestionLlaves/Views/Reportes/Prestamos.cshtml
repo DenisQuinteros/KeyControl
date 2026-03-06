@@ -1,0 +1,156 @@
+@{
+    ViewData["Title"] = "Reporte de Préstamos";
+    ViewData["HideTopSubtitle"] = true;
+    ViewData["HideTopHeader"] = true;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-arrow-left-right me-2" style="color:#0369a1;"></i>Reporte de Préstamos
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Análisis por periodo, ambiente y estado.</p>
+    </div>
+    <a asp-controller="Reportes" asp-action="Index" class="btn px-4 py-2" style="background:#f1f5f9; color:#64748b; border-radius:12px; border:none; font-weight:600;">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Reportes
+    </a>
+</div>
+
+<div class="ui-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Préstamos</h3>
+        <span id="prestamosTotal" style="color:#94a3b8; font-size:0.85rem;">0 resultado(s)</span>
+    </div>
+
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-2">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Desde</label>
+            <input type="date" id="pDesde" class="form-control" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Hasta</label>
+            <input type="date" id="pHasta" class="form-control" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+        </div>
+        <div class="col-md-4">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Ambiente</label>
+            <select id="pAmbiente" class="form-select" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos</option>
+                @foreach (var item in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewData["Ambientes"]!)
+                {
+                    <option value="@item.Value">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Estado</label>
+            <select id="pEstado" class="form-select" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos</option>
+                <option value="A">Activo</option>
+                <option value="D">Devuelto</option>
+                <option value="V">Vencido</option>
+                <option value="C">Cancelado</option>
+            </select>
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button class="btn px-4 py-2" onclick="cargarPrestamos()" style="background:#0369a1; color:white; border-radius:12px; border:none; font-weight:600;">Filtrar</button>
+            <button class="btn px-4 py-2" onclick="exportarPrestamosPdf()" style="background:#f1f5f9; color:#334155; border-radius:12px; border:none; font-weight:600;">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="status-badge" style="background:#fef3c7; color:#92400e; width:100%; text-align:center;">Activos: <span id="sumActivos">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#dcfce7; color:#166534; width:100%; text-align:center;">Devueltos: <span id="sumDevueltos">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#fee2e2; color:#991b1b; width:100%; text-align:center;">Vencidos: <span id="sumVencidos">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#f1f5f9; color:#64748b; width:100%; text-align:center;">Cancelados: <span id="sumCancelados">0</span></div></div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-borderless mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Persona</th>
+                    <th>Llave</th>
+                    <th>Ambiente</th>
+                    <th>Fecha Préstamo</th>
+                    <th>Devolución</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody id="tablaPrestamosReport"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function qs(base, params) {
+        const url = new URL(base, window.location.origin);
+        Object.entries(params).forEach(([k, v]) => {
+            if (v !== null && v !== undefined && v !== '') url.searchParams.append(k, v);
+        });
+        return url.pathname + url.search;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '—';
+        return new Date(v).toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' });
+    }
+
+    function estadoBadge(estado) {
+        const map = {
+            A: ['#fef3c7', '#92400e', 'Activo'],
+            D: ['#dcfce7', '#166534', 'Devuelto'],
+            V: ['#fee2e2', '#991b1b', 'Vencido'],
+            C: ['#dbeafe', '#1e40af', 'Cancelado']
+        };
+        const cfg = map[estado] || ['#f1f5f9', '#64748b', estado];
+        return `<span class="status-badge" style="background:${cfg[0]}; color:${cfg[1]};">${cfg[2]}</span>`;
+    }
+
+    async function cargarPrestamos() {
+        const url = qs('/Reportes/PrestamosData', {
+            fechaDesde: document.getElementById('pDesde').value,
+            fechaHasta: document.getElementById('pHasta').value,
+            idAmbiente: document.getElementById('pAmbiente').value,
+            estado: document.getElementById('pEstado').value
+        });
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        document.getElementById('prestamosTotal').textContent = `${json.total} resultado(s)`;
+        document.getElementById('sumActivos').textContent = json.activos;
+        document.getElementById('sumDevueltos').textContent = json.devueltos;
+        document.getElementById('sumVencidos').textContent = json.vencidos;
+        document.getElementById('sumCancelados').textContent = json.cancelados;
+
+        document.getElementById('tablaPrestamosReport').innerHTML = json.data.map(p => `
+            <tr>
+                <td>#${p.idPrestamo}</td>
+                <td>${p.persona}</td>
+                <td>${p.llave}</td>
+                <td>${p.ambiente}</td>
+                <td>${fmtDate(p.fechaHoraPrestamo)}</td>
+                <td>${fmtDate(p.fechaHoraDevolucionReal)}</td>
+                <td>${estadoBadge(p.estado)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function exportarPrestamosPdf() {
+        const url = qs('/Reportes/ExportarPrestamosPdf', {
+            fechaDesde: document.getElementById('pDesde').value,
+            fechaHasta: document.getElementById('pHasta').value,
+            idAmbiente: document.getElementById('pAmbiente').value,
+            estado: document.getElementById('pEstado').value
+        });
+
+        window.location.href = url;
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarPrestamos);
+</script>
+}

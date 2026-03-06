@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +10,7 @@ namespace SistemaGestionLlaves.Controllers;
 /// Controlador MVC para las vistas de Préstamos.
 /// Rutas: /Prestamos
 /// </summary>
+[Authorize(Roles = "Administrador,Operador")]
 public class PrestamosController : Controller
 {
     private readonly ApplicationDbContext _context;

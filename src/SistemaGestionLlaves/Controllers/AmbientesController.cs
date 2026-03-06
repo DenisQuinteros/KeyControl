@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using SistemaGestionLlaves.Models;
 
 namespace SistemaGestionLlaves.Controllers
 {
+    [Authorize(Roles = "Administrador, Operador")]
     public class AmbientesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -21,6 +23,7 @@ namespace SistemaGestionLlaves.Controllers
             var query = _context.Ambientes
                 .Include(a => a.TipoAmbiente)
                 .Include(a => a.Llaves)
+                .Where(a => a.Estado == "A")
                 .AsQueryable();
 
             int totalItems = await query.CountAsync();
@@ -166,7 +169,8 @@ public async Task<IActionResult> DeleteConfirmed(int id)
 
     if (ambienteEliminar != null)
     {
-        _context.Ambientes.Remove(ambienteEliminar);
+        ambienteEliminar.Estado = "I";
+        _context.Ambientes.Update(ambienteEliminar);
         await _context.SaveChangesAsync();
     }
 

@@ -1,0 +1,143 @@
+@{
+    ViewData["Title"] = "Inventario de Llaves";
+    ViewData["HideTopSubtitle"] = true;
+    ViewData["HideTopHeader"] = true;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-key me-2" style="color:#0369a1;"></i>Inventario de Llaves
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Estado actual de cada llave, historial de uso y último solicitante.</p>
+    </div>
+    <a asp-controller="Reportes" asp-action="Index" class="btn px-4 py-2" style="background:#f1f5f9; color:#64748b; border-radius:12px; border:none; font-weight:600;">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Reportes
+    </a>
+</div>
+
+<div class="ui-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Llaves</h3>
+        <span id="invTotal" style="color:#94a3b8; font-size:0.85rem;">0 resultado(s)</span>
+    </div>
+
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-4">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Ambiente</label>
+            <select id="iAmbiente" class="form-select" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos</option>
+                @foreach (var item in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewData["Ambientes"]!)
+                {
+                    <option value="@item.Value">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Estado</label>
+            <select id="iEstado" class="form-select" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos (excl. inactivas)</option>
+                <option value="D">Disponible</option>
+                <option value="P">Prestada</option>
+                <option value="R">Reservada</option>
+                <option value="I">Inactiva</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button class="btn px-4 py-2" onclick="cargarInventario()" style="background:#0369a1; color:white; border-radius:12px; border:none; font-weight:600;">Filtrar</button>
+            <button class="btn px-4 py-2" onclick="exportarInventarioPdf()" style="background:#f1f5f9; color:#334155; border-radius:12px; border:none; font-weight:600;">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-3"><div class="status-badge" style="background:#dcfce7; color:#166534; width:100%; text-align:center;">Disponibles: <span id="sumDisponibles">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#fef3c7; color:#92400e; width:100%; text-align:center;">Prestadas: <span id="sumPrestadas">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#dbeafe; color:#1e40af; width:100%; text-align:center;">Reservadas: <span id="sumReservadas">0</span></div></div>
+        <div class="col-md-3"><div class="status-badge" style="background:#f1f5f9; color:#64748b; width:100%; text-align:center;">Inactivas: <span id="sumInactivas">0</span></div></div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-borderless mb-0">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Ambiente</th>
+                    <th>Maestra</th>
+                    <th>Estado</th>
+                    <th>Total Préstamos</th>
+                    <th>Último Solicitante</th>
+                    <th>Última Fecha</th>
+                </tr>
+            </thead>
+            <tbody id="tablaInventario"></tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function qs(base, params) {
+        const url = new URL(base, window.location.origin);
+        Object.entries(params).forEach(([k, v]) => {
+            if (v !== null && v !== undefined && v !== '') url.searchParams.append(k, v);
+        });
+        return url.pathname + url.search;
+    }
+
+    function fmtDate(v) {
+        if (!v) return '—';
+        return new Date(v).toLocaleDateString('es-BO', { dateStyle: 'short' });
+    }
+
+    function estadoBadge(estado) {
+        const map = {
+            D: ['#dcfce7', '#166534', 'Disponible'],
+            P: ['#fef3c7', '#92400e', 'Prestada'],
+            R: ['#dbeafe', '#1e40af', 'Reservada'],
+            I: ['#f1f5f9', '#64748b', 'Inactiva']
+        };
+        const cfg = map[estado] || ['#f1f5f9', '#64748b', estado];
+        return `<span class="status-badge" style="background:${cfg[0]}; color:${cfg[1]};">${cfg[2]}</span>`;
+    }
+
+    async function cargarInventario() {
+        const url = qs('/Reportes/InventarioLlavesData', {
+            idAmbiente: document.getElementById('iAmbiente').value,
+            estado: document.getElementById('iEstado').value
+        });
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        document.getElementById('invTotal').textContent = `${json.total} resultado(s)`;
+        document.getElementById('sumDisponibles').textContent = json.data.filter(x => x.estado === 'D').length;
+        document.getElementById('sumPrestadas').textContent   = json.data.filter(x => x.estado === 'P').length;
+        document.getElementById('sumReservadas').textContent  = json.data.filter(x => x.estado === 'R').length;
+        document.getElementById('sumInactivas').textContent   = json.data.filter(x => x.estado === 'I').length;
+
+        document.getElementById('tablaInventario').innerHTML = json.data.map(l => `
+            <tr>
+                <td><strong>${l.codigo}</strong></td>
+                <td>${l.ambiente}</td>
+                <td>${l.esMaestra ? '<span class="status-badge" style="background:#ede9fe;color:#6d28d9;">Sí</span>' : '—'}</td>
+                <td>${estadoBadge(l.estado)}</td>
+                <td>${l.totalPrestamos}</td>
+                <td>${l.ultimaPersona}</td>
+                <td>${fmtDate(l.ultimaFecha)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function exportarInventarioPdf() {
+        const url = qs('/Reportes/ExportarInventarioLlavesPdf', {
+            idAmbiente: document.getElementById('iAmbiente').value,
+            estado: document.getElementById('iEstado').value
+        });
+        window.location.href = url;
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarInventario);
+</script>
+}

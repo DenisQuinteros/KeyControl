@@ -1,0 +1,158 @@
+@{
+    ViewData["Title"] = "Actividad por Ambiente";
+    ViewData["HideTopSubtitle"] = true;
+    ViewData["HideTopHeader"] = true;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-building me-2" style="color:#0369a1;"></i>Actividad por Ambiente
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Préstamos, reservas y promedio de uso por ambiente en el periodo seleccionado.</p>
+    </div>
+    <a asp-controller="Reportes" asp-action="Index" class="btn px-4 py-2" style="background:#f1f5f9; color:#64748b; border-radius:12px; border:none; font-weight:600;">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Reportes
+    </a>
+</div>
+
+<div class="ui-card mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Filtros</h3>
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Desde</label>
+            <input type="date" id="aDesde" class="form-control" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Hasta</label>
+            <input type="date" id="aHasta" class="form-control" style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button class="btn px-4 py-2" onclick="cargarActividad()" style="background:#0369a1; color:white; border-radius:12px; border:none; font-weight:600;">Filtrar</button>
+            <button class="btn px-4 py-2" onclick="exportarActividadPdf()" style="background:#f1f5f9; color:#334155; border-radius:12px; border:none; font-weight:600;">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+        </div>
+        <div class="col-md-2 text-end">
+            <span id="actTotal" style="color:#94a3b8; font-size:0.85rem;">0 actividades</span>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="ui-card h-100">
+            <h3 class="card-title mb-3">Actividad total por ambiente</h3>
+            <canvas id="chartActividad" height="320"></canvas>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="ui-card h-100">
+            <h3 class="card-title mb-3">Detalle</h3>
+            <div class="table-responsive">
+                <table class="table table-borderless mb-0" style="font-size:0.88rem;">
+                    <thead>
+                        <tr>
+                            <th>Ambiente</th>
+                            <th class="text-center">Prést.</th>
+                            <th class="text-center">Reserv.</th>
+                            <th class="text-center">Total</th>
+                            <th class="text-center">Prom. h</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaActividad"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    let chart = null;
+
+    function qs(base, params) {
+        const url = new URL(base, window.location.origin);
+        Object.entries(params).forEach(([k, v]) => {
+            if (v !== null && v !== undefined && v !== '') url.searchParams.append(k, v);
+        });
+        return url.pathname + url.search;
+    }
+
+    async function cargarActividad() {
+        const url = qs('/Reportes/ActividadAmbienteData', {
+            fechaDesde: document.getElementById('aDesde').value,
+            fechaHasta: document.getElementById('aHasta').value
+        });
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        document.getElementById('actTotal').textContent = `${json.totalActividad} actividades`;
+
+        const labels   = json.data.map(x => x.ambiente);
+        const prest    = json.data.map(x => x.totalPrestamos);
+        const reservas = json.data.map(x => x.totalReservas);
+
+        if (chart) chart.destroy();
+
+        chart = new Chart(document.getElementById('chartActividad'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Préstamos',
+                        data: prest,
+                        backgroundColor: 'rgba(3,105,161,0.75)',
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Reservas',
+                        data: reservas,
+                        backgroundColor: 'rgba(109,40,217,0.65)',
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'top' } },
+                scales: {
+                    x: { stacked: false, grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        if (json.data.length === 0) {
+            document.getElementById('tablaActividad').innerHTML = `
+                <tr><td colspan="5" class="text-center py-3" style="color:#64748b;">Sin actividad para el periodo seleccionado.</td></tr>`;
+            return;
+        }
+
+        document.getElementById('tablaActividad').innerHTML = json.data.map(a => `
+            <tr>
+                <td><strong>${a.ambiente}</strong><br><small style="color:#94a3b8;">${a.codigo}</small></td>
+                <td class="text-center">${a.totalPrestamos}</td>
+                <td class="text-center">${a.totalReservas}</td>
+                <td class="text-center"><strong>${a.totalActividad}</strong></td>
+                <td class="text-center">${a.promedioHorasPrestamo > 0 ? a.promedioHorasPrestamo + ' h' : '—'}</td>
+            </tr>
+        `).join('');
+    }
+
+    function exportarActividadPdf() {
+        const url = qs('/Reportes/ExportarActividadAmbientePdf', {
+            fechaDesde: document.getElementById('aDesde').value,
+            fechaHasta: document.getElementById('aHasta').value
+        });
+        window.location.href = url;
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarActividad);
+</script>
+}

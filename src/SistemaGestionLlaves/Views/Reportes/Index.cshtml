@@ -1,0 +1,106 @@
+@{
+    ViewData["Title"] = "Reportes";
+    ViewData["HideTopSubtitle"] = true;
+    ViewData["HideTopHeader"] = true;
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-file-earmark-bar-graph me-2" style="color:#0369a1;"></i>Centro de Reportes
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Selecciona el tipo de reporte para abrir su vista detallada.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="Reservas" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#e0f2fe; color:#0369a1;">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Reporte de Reservas</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Consulta reservas por rango de fechas y ambiente.</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="Prestamos" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#dbeafe; color:#1e40af;">
+                        <i class="bi bi-arrow-left-right"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Reporte de Préstamos</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Filtra préstamos por periodo, estado y ambiente con métricas resumen.</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="TopPersonas" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#ede9fe; color:#6d28d9;">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Top Personas Solicitantes</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Visualiza en gráfico las personas con más préstamos y reservas.</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="InventarioLlaves" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#dcfce7; color:#166534;">
+                        <i class="bi bi-key"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Inventario de Llaves</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Estado actual de cada llave, historial de préstamos y último solicitante.</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="PrestamosVencidos" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#fee2e2; color:#dc2626;">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Préstamos Vencidos</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Préstamos activos cuya fecha de devolución ya fue superada.</p>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-lg-4 col-md-6">
+        <a asp-controller="Reportes" asp-action="ActividadAmbiente" class="report-card-link">
+            <div class="ui-card report-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="report-icon" style="background:#fef3c7; color:#92400e;">
+                        <i class="bi bi-building"></i>
+                    </div>
+                    <i class="bi bi-arrow-right" style="color:#94a3b8;"></i>
+                </div>
+                <h5 class="card-title mb-2">Actividad por Ambiente</h5>
+                <p class="mb-0" style="color:#64748b; font-size:0.9rem;">Préstamos y reservas consolidados por ambiente con promedio de uso.</p>
+            </div>
+        </a>
+    </div>
+</div>
