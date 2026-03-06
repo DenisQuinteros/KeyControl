@@ -16,26 +16,39 @@ namespace SistemaGestionLlaves.Controllers
         }
 
         // LISTAR
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        {
+            var query = _context.Ambientes
+                .Include(a => a.TipoAmbiente)
+                .Include(a => a.Llaves)
+                .AsQueryable();
+
+            int totalItems = await query.CountAsync();
+            var ambientes = await query
+                .AsNoTracking()
+                .OrderBy(a => a.IdAmbiente)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            return View(ambientes);
+        }
+
+    public async Task<IActionResult> Details(int id)
     {
-        var ambientes = await _context.Ambientes
-        .Include(a => a.TipoAmbiente)
-        .ToListAsync();
+        var ambiente = await _context.Ambientes
+            .Include(a => a.TipoAmbiente)
+            .Include(a => a.Llaves)
+            .FirstOrDefaultAsync(a => a.IdAmbiente == id);
 
-         return View(ambientes);
-   }
+        if (ambiente == null)
+            return NotFound();
 
-   public async Task<IActionResult> Details(int id)
-{
-    var ambiente = await _context.Ambientes
-        .Include(a => a.TipoAmbiente)
-        .FirstOrDefaultAsync(a => a.IdAmbiente == id);
-
-    if (ambiente == null)
-        return NotFound();
-
-    return View(ambiente);
-}
+        return View(ambiente);
+    }
 
         // CREAR GET
         public async Task<IActionResult> Create()
@@ -121,12 +134,13 @@ public async Task<IActionResult> Edit(int id, Ambiente ambiente)
     return View(ambiente);
 }
 
-    // DELETE GET
+
+// DELETE GET
 public async Task<IActionResult> Delete(int id)
 {
     var ambiente = await _context.Ambientes
-                                 .Include(a => a.TipoAmbiente)
-                                 .FirstOrDefaultAsync(a => a.IdAmbiente == id);
+        .Include(a => a.TipoAmbiente)
+        .FirstOrDefaultAsync(a => a.IdAmbiente == id);
 
     if (ambiente == null)
         return NotFound();
@@ -139,11 +153,20 @@ public async Task<IActionResult> Delete(int id)
 [ValidateAntiForgeryToken]
 public async Task<IActionResult> DeleteConfirmed(int id)
 {
-    var ambiente = await _context.Ambientes.FindAsync(id);
+    var tieneLlaves = _context.Llaves.Any(l => l.IdAmbiente == id);
 
-    if (ambiente != null)
+    if (tieneLlaves)
     {
-        _context.Ambientes.Remove(ambiente);
+        ModelState.AddModelError("", "No se puede eliminar el ambiente porque tiene llaves asociadas.");
+        var ambiente = await _context.Ambientes.FindAsync(id);
+        return View(ambiente);
+    }
+
+    var ambienteEliminar = await _context.Ambientes.FindAsync(id);
+
+    if (ambienteEliminar != null)
+    {
+        _context.Ambientes.Remove(ambienteEliminar);
         await _context.SaveChangesAsync();
     }
 

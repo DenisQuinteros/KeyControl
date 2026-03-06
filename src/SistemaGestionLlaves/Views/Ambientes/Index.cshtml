@@ -1,42 +1,107 @@
 @model IEnumerable<SistemaGestionLlaves.Models.Ambiente>
-
 @{
     ViewData["Title"] = "Ambientes";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="fw-bold">Lista de Ambientes</h2>
-        <a asp-action="Create" class="btn btn-primary">
-            + Nuevo Ambiente
-        </a>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-door-open me-2" style="color:#0369a1;"></i>Gestión de Ambientes
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Administra aulas, laboratorios y oficinas.</p>
+    </div>
+    <a asp-action="Create" class="btn d-flex align-items-center gap-2 px-4 py-2"
+       style="background:#0369a1; border-color:#0369a1; color:white; border-radius:12px; font-weight:600;">
+        <i class="bi bi-plus-lg"></i> Nuevo Ambiente
+    </a>
+</div>
+
+<div class="ui-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Lista de Ambientes</h3>
+        <span style="color:#94a3b8; font-size:0.85rem;">@Model.Count() ambiente(s)</span>
     </div>
 
-    <div class="card shadow">
-        <div class="card-body">
-            <table class="table table-hover table-bordered align-middle">
-                <thead class="table-dark text-center">
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5" style="color:#94a3b8;">
+            <i class="bi bi-door-closed" style="font-size:3rem; display:block; margin-bottom:12px;"></i>
+            <p class="mb-0">No hay ambientes registrados.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-borderless mb-0">
+                <thead>
                     <tr>
-                        <th>Nombre</th>
+                        <th>Ambiente</th>
                         <th>Tipo</th>
-                        <th class="text-center">Acciones</th>
+                        <th>Ubicación</th>
+                        <th>Llaves</th>
+                        <th>Estado</th>
+                        <th style="text-align:right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>@item.Nombre</td>
-                        <td>@item.TipoAmbiente?.NombreTipo</td>
-                        <td class="text-center">
-                            <a asp-action="Details" asp-route-id="@item.IdAmbiente" class="btn btn-info btn-sm">Ver</a>
-                            <a asp-action="Edit" asp-route-id="@item.IdAmbiente" class="btn btn-warning btn-sm">Editar</a>
-                            <a asp-action="Delete" asp-route-id="@item.IdAmbiente" class="btn btn-danger btn-sm">Eliminar</a>
-                        </td>
-                    </tr>
-                }
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div style="width:36px; height:36px; background:#e0f2fe; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#0369a1;">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold" style="color:#0f172a;">@item.Nombre</span>
+                                        <div style="font-size:0.7rem; color:#64748b;">@item.Codigo</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-badge" style="background:#ede9fe; color:#6d28d9;">@item.TipoAmbiente?.NombreTipo</span>
+                            </td>
+                            <td style="color:#334155;">@item.Ubicacion</td>
+                            <td>
+                                <a asp-controller="LlavesView" asp-action="Index" asp-route-idAmbiente="@item.IdAmbiente" 
+                                   class="text-decoration-none d-inline-flex align-items-center gap-1" 
+                                   style="color:#0369a1; font-weight:600;">
+                                    <span class="badge rounded-pill" style="background:#e0f2fe; color:#0369a1;">@item.Llaves.Count</span>
+                                    @if(item.Llaves.Count == 1) { <span>llave</span> } else { <span>llaves</span> }
+                                </a>
+                            </td>
+                            <td>
+                                @{
+                                    var (bg, fg, label, icon) = item.Estado switch
+                                    {
+                                        "A" => ("#dcfce7", "#166534", "Activo", "check-circle"),
+                                        _ => ("#f1f5f9", "#64748b", "Inactivo", "x-circle")
+                                    };
+                                }
+                                <span class="status-badge" style="background:@bg; color:@fg;">
+                                    <i class="bi bi-@icon me-1"></i>@label
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2 justify-content-end">
+                                    <a asp-action="Details" asp-route-id="@item.IdAmbiente"
+                                       class="btn btn-sm" title="Ver detalles"
+                                       style="background:#f1f5f9; color:#0369a1; border-radius:8px; border:none; padding:6px 10px;">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.IdAmbiente"
+                                       class="btn btn-sm" title="Editar"
+                                       style="background:#e0f2fe; color:#0369a1; border-radius:8px; border:none; padding:6px 10px;">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 </tbody>
             </table>
         </div>
-    </div>
+    }
 </div>
+
+<partial name="_Paginador" />

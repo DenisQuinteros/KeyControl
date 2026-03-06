@@ -45,7 +45,6 @@
                         <th>Persona</th>
                         <th>Rol</th>
                         <th>Estado</th>
-                        <th>Inicio</th>
                         <th style="text-align:right;">Acciones</th>
                     </tr>
                 </thead>
@@ -78,7 +77,6 @@
                                     <i class="bi bi-@icon me-1"></i>@label
                                 </span>
                             </td>
-                            <td style="color:#334155;">@(item.FechaInicio?.ToString("dd/MM/yyyy") ?? "-")</td>
                             <td>
                                 <div class="d-flex gap-2 justify-content-end">
                                     <a asp-action="Details" asp-route-id="@item.IdUsuario"
@@ -105,3 +103,5 @@
         </div>
     }
 </div>
+
+<partial name="_Paginador" />

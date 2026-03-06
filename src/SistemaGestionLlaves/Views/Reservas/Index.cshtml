@@ -1,0 +1,223 @@
+@{
+    ViewData["Title"] = "Reservas";
+}
+
+<!-- Page Header -->
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
+            <i class="bi bi-calendar-check me-2" style="color:#0369a1;"></i>Gestión de Reservas
+        </h2>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">
+            Administra las reservas anticipadas de llaves
+        </p>
+    </div>
+    <a asp-controller="Reservas" asp-action="Crear"
+       class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2"
+       style="background:#0369a1; border-color:#0369a1; border-radius:12px; font-weight:600;">
+        <i class="bi bi-plus-lg"></i> Nueva Reserva
+    </a>
+</div>
+
+<!-- Toast -->
+<div id="toast-box" class="position-fixed top-0 end-0 p-3" style="z-index:9999;"></div>
+
+<!-- Filtros -->
+<div class="ui-card mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label fw-600"
+                   style="color:#64748b; font-size:0.8rem; text-transform:uppercase;">
+                Estado
+            </label>
+            <select id="filtroEstado" class="form-select"
+                    style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
+                <option value="">Todos</option>
+                <option value="P">Pendiente</option>
+                <option value="C">Confirmada</option>
+                <option value="U">Utilizada</option>
+                <option value="X">Cancelada</option>
+            </select>
+        </div>
+
+        <div class="col-md-4 d-flex gap-2">
+            <button onclick="cargarReservas()" class="btn px-4 py-2"
+                    style="background:#0369a1; color:white; border-radius:12px; font-weight:600; border:none;">
+                <i class="bi bi-funnel me-1"></i>Filtrar
+            </button>
+
+            <button onclick="document.getElementById('filtroEstado').value=''; cargarReservas();"
+                    class="btn px-4 py-2"
+                    style="background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:600; border:none;">
+                <i class="bi bi-x-circle me-1"></i>Limpiar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="ui-card">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="card-title mb-0">Lista de Reservas</h3>
+        <span id="totalResultados" style="color:#94a3b8; font-size:0.85rem;"></span>
+    </div>
+
+    <div id="loadingSpinner" class="text-center py-5" style="display:none;">
+        <div class="spinner-border"></div>
+    </div>
+
+    <div id="emptyState" class="text-center py-5" style="display:none; color:#94a3b8;">
+        <i class="bi bi-calendar-x" style="font-size:3rem; display:block; margin-bottom:12px;"></i>
+        <p class="mb-0">No se encontraron reservas.</p>
+    </div>
+
+    <div class="table-responsive" id="tablaWrapper" style="display:none;">
+        <table class="table table-borderless mb-0">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Llave</th>
+                    <th>Persona</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Fin</th>
+                    <th>Estado</th>
+                    <th style="text-align:right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaReservas"></tbody>
+        </table>
+    </div>
+
+    <!-- Paginación AJAX -->
+    <div id="paginacionAjax" class="d-flex justify-content-center gap-2 mt-4" style="display:none !important;">
+        <button id="btnPrevPage" onclick="cambiarPagina(-1)" class="btn btn-outline-secondary" style="border-radius:12px;">Anterior</button>
+        <span id="lblCurrentPage" class="btn disabled" style="border-radius:12px; border:none; background:#f8fafc; color:#0f172a; font-weight:600;">Página 1</span>
+        <button id="btnNextPage" onclick="cambiarPagina(1)" class="btn btn-outline-secondary" style="border-radius:12px;">Siguiente</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+    let currentPage = 1;
+    const pageSize = 10;
+
+    function estadoBadge(e) {
+        const map = {
+            'P': ['#fef3c7','#92400e','clock','Pendiente'],
+            'C': ['#e0f2fe','#0369a1','check-circle','Confirmada'],
+            'U': ['#dcfce7','#166534','key','Utilizada'],
+            'X': ['#fee2e2','#991b1b','x-circle','Cancelada']
+        };
+        const [bg, fg, icon, label] = map[e] ?? ['#f1f5f9','#64748b','question','?'];
+        return `<span class="status-badge" style="background:${bg}; color:${fg};">
+                    <i class="bi bi-${icon} me-1"></i>${label}
+                </span>`;
+    }
+
+    function fmtFecha(f) {
+        return new Date(f).toLocaleString('es-BO', { dateStyle:'short', timeStyle:'short' });
+    }
+
+    async function cargarReservas() {
+        const estado = document.getElementById('filtroEstado').value;
+        const pageQuery = `page=${currentPage}&pageSize=${pageSize}`;
+        const url = `/api/reservas?${pageQuery}${estado ? '&estado=' + estado : ''}`;
+
+        document.getElementById('loadingSpinner').style.display = '';
+        document.getElementById('tablaWrapper').style.display = 'none';
+        document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('paginacionAjax').style.setProperty('display', 'none', 'important');
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        document.getElementById('loadingSpinner').style.display = 'none';
+        document.getElementById('totalResultados').textContent = `${data.length} resultado(s)`;
+
+        if (data.length === 0) {
+            document.getElementById('emptyState').style.display = '';
+            return;
+        }
+
+        const tbody = document.getElementById('tablaReservas');
+        tbody.innerHTML = data.map(r => `
+            <tr>
+                <td>#${r.idReserva}</td>
+                <td><strong>${r.llave ?? '—'}</strong></td>
+                <td>${r.persona ?? '—'}</td>
+                <td>${fmtFecha(r.fechaInicio)}</td>
+                <td>${fmtFecha(r.fechaFin)}</td>
+                <td>${estadoBadge(r.estado)}</td>
+                <td class="text-end">
+                    ${r.estado === 'P' ? `
+                     <div class="d-flex gap-2 justify-content-end">
+                         <button onclick="confirmarReserva(${r.idReserva})"
+                                  class="btn btn-sm"
+                                  style="background:#e0f2fe; color:#0369a1; border:none; border-radius:8px;">
+                               <i class="bi bi-check-lg"></i>
+                         </button>
+
+                         <button onclick="cancelarReserva(${r.idReserva})"
+                                   class="btn btn-sm"
+                                   style="background:#fee2e2; color:#991b1b; border:none; border-radius:8px;">
+                                <i class="bi bi-x-lg"></i>
+                         </button>
+                     </div>
+                 ` : ''}
+                </td>
+            </tr>
+        `).join('');
+
+        document.getElementById('tablaWrapper').style.display = '';
+        
+        document.getElementById('lblCurrentPage').textContent = `Página ${currentPage}`;
+        document.getElementById('paginacionAjax').style.setProperty('display', 'flex', 'important');
+        document.getElementById('btnPrevPage').disabled = (currentPage === 1);
+        document.getElementById('btnNextPage').disabled = (data.length < pageSize);
+    }
+
+    function cambiarPagina(delta) {
+        currentPage += delta;
+        if (currentPage < 1) currentPage = 1;
+        cargarReservas();
+    }
+
+    async function confirmarReserva(id) {
+    const res = await fetch(`/api/reservas/${id}/confirmar`, { method: 'PATCH' });
+    const json = await res.json();
+    mostrarToast(json.mensaje, json.exito);
+    if (json.exito) cargarReservas();
+    }
+
+    async function cancelarReserva(id) {
+    const res = await fetch(`/api/reservas/${id}/cancelar`, { method: 'PATCH' });
+    const json = await res.json();
+    mostrarToast(json.mensaje, json.exito);
+    if (json.exito) cargarReservas();
+    }
+
+    function mostrarToast(msg, exito) {
+    const id = 'toast-' + Date.now();
+    const color = exito ? '#dcfce7' : '#fee2e2';
+    const textColor = exito ? '#166534' : '#991b1b';
+    const icon = exito ? 'check-circle-fill' : 'exclamation-circle-fill';
+
+    const box = document.getElementById('toast-box');
+    box.insertAdjacentHTML('beforeend', `
+        <div id="${id}" class="toast show align-items-center"
+             style="background:${color}; color:${textColor}; border:none; border-radius:12px; min-width:280px; margin-bottom:8px;">
+            <div class="d-flex align-items-center gap-2 p-3">
+                <i class="bi bi-${icon}"></i>
+                <span>${msg}</span>
+                <button type="button" class="btn-close ms-auto"
+                        onclick="this.closest('.toast').remove()"></button>
+            </div>
+        </div>`);
+
+    setTimeout(() => document.getElementById(id)?.remove(), 4000);
+   }
+
+    document.addEventListener('DOMContentLoaded', cargarReservas);
+
+  </script>
+}

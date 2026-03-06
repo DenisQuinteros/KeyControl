@@ -16,9 +16,22 @@ public class RolController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
     {
-        return View(await _context.Roles.ToListAsync());
+        var query = _context.Roles.AsQueryable();
+
+        int totalItems = await query.CountAsync();
+        var roles = await query
+            .AsNoTracking()
+            .OrderBy(r => r.IdRol)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        return View(roles);
     }
 
     public async Task<IActionResult> Details(int? id)

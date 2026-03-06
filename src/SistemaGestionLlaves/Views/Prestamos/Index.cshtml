@@ -81,6 +81,13 @@
             <tbody id="tablaPrestamos"></tbody>
         </table>
     </div>
+
+    <!-- Paginación AJAX -->
+    <div id="paginacionAjax" class="d-flex justify-content-center gap-2 mt-4" style="display:none !important;">
+        <button id="btnPrevPage" onclick="cambiarPagina(-1)" class="btn btn-outline-secondary" style="border-radius:12px;">Anterior</button>
+        <span id="lblCurrentPage" class="btn disabled" style="border-radius:12px; border:none; background:#f8fafc; color:#0f172a; font-weight:600;">Página 1</span>
+        <button id="btnNextPage" onclick="cambiarPagina(1)" class="btn btn-outline-secondary" style="border-radius:12px;">Siguiente</button>
+    </div>
 </div>
 
 <!-- Modal Confirmar Devolución -->
@@ -115,6 +122,8 @@
 @section Scripts {
 <script>
     let idParaDevolver = null;
+    let currentPage = 1;
+    const pageSize = 10;
 
     function estadoBadge(e) {
         const map = {
@@ -136,11 +145,13 @@
 
     async function cargarPrestamos() {
         const estado = document.getElementById('filtroEstado').value;
-        const url = `/api/prestamos${estado ? '?estado=' + estado : ''}`;
+        const pageQuery = `page=${currentPage}&pageSize=${pageSize}`;
+        const url = `/api/prestamos?${pageQuery}${estado ? '&estado=' + estado : ''}`;
 
         document.getElementById('loadingSpinner').style.display = '';
         document.getElementById('tablaWrapper').style.display = 'none';
         document.getElementById('emptyState').style.display = 'none';
+        document.getElementById('paginacionAjax').style.setProperty('display', 'none', 'important');
 
         try {
             const res = await fetch(url);
@@ -186,10 +197,22 @@
             `).join('');
 
             document.getElementById('tablaWrapper').style.display = '';
+            
+            document.getElementById('lblCurrentPage').textContent = `Página ${currentPage}`;
+            document.getElementById('paginacionAjax').style.setProperty('display', 'flex', 'important');
+            document.getElementById('btnPrevPage').disabled = (currentPage === 1);
+            document.getElementById('btnNextPage').disabled = (data.length < pageSize);
+
         } catch (err) {
             document.getElementById('loadingSpinner').style.display = 'none';
             mostrarToast('Error al cargar préstamos: ' + err.message, false);
         }
+    }
+
+    function cambiarPagina(delta) {
+        currentPage += delta;
+        if (currentPage < 1) currentPage = 1;
+        cargarPrestamos();
     }
 
     function abrirModalDevolver(id) {

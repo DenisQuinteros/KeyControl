@@ -20,11 +20,14 @@ public class LlavesViewController : Controller
     }
 
     // GET: Llaves
-    public async Task<IActionResult> Index(string? busqueda, string? estado)
+    public async Task<IActionResult> Index(string? busqueda, string? estado, int? idAmbiente, int page = 1, int pageSize = 10)
     {
         var query = _context.Llaves
             .Include(l => l.Ambiente)
             .AsQueryable();
+
+        if (idAmbiente.HasValue)
+            query = query.Where(l => l.IdAmbiente == idAmbiente.Value);
 
         if (!string.IsNullOrWhiteSpace(estado))
             query = query.Where(l => l.Estado == estado);
@@ -36,11 +39,19 @@ public class LlavesViewController : Controller
 
         ViewData["busqueda"] = busqueda;
         ViewData["estado"] = estado;
+        ViewData["idAmbiente"] = idAmbiente;
 
+        int totalItems = await query.CountAsync();
         var llaves = await query
+            .AsNoTracking()
             .OrderBy(l => l.Ambiente.Nombre)
             .ThenBy(l => l.Codigo)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
         return View(llaves);
     }

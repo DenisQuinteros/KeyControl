@@ -1,0 +1,53 @@
+@{
+    // Obtener variables enviadas desde los controladores
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+
+    // Recuperar todos los parámetros GET existentes (búsquedas, filtros)
+    var queryDict = new Dictionary<string, string>();
+    foreach (var key in Context.Request.Query.Keys)
+    {
+        // Ignorar 'page' porque lo agregaremos manualmente en cada enlace
+        if (key.ToLower() != "page")
+        {
+            queryDict[key] = Context.Request.Query[key];
+        }
+    }
+
+    // Función auxiliar para construir la URL con los parámetros existentes + la página
+    string GetUrl(int pageNumber)
+    {
+        var queryString = string.Join("&", queryDict.Select(kvp => $"{kvp.Key}={kvp.Value}"));
+        var sep = string.IsNullOrEmpty(queryString) ? "?" : $"?{queryString}&";
+        return $"{sep}page={pageNumber}";
+    }
+
+    // Calcular si los botones están deshabilitados
+    string disabledPrev = (currentPage == 1) ? "disabled" : "";
+    string disabledNext = (currentPage == totalPages || totalPages == 0) ? "disabled" : "";
+}
+
+<nav aria-label="Navegación de registros" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <!-- Botón Anterior -->
+        <li class="page-item @disabledPrev">
+            <a class="page-link" href="@GetUrl(currentPage - 1)" tabindex="-1" aria-disabled="@(currentPage == 1 ? "true" : "false")">
+                Anterior
+            </a>
+        </li>
+        
+        <!-- Indicador de página actual -->
+        <li class="page-item active" aria-current="page">
+            <span class="page-link">
+                Página @currentPage de @(totalPages == 0 ? 1 : totalPages)
+            </span>
+        </li>
+
+        <!-- Botón Siguiente -->
+        <li class="page-item @disabledNext">
+            <a class="page-link" href="@GetUrl(currentPage + 1)" aria-disabled="@(currentPage == totalPages ? "true" : "false")">
+                Siguiente
+            </a>
+        </li>
+    </ul>
+</nav>

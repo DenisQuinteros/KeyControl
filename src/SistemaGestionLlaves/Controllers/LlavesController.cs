@@ -51,7 +51,9 @@ public class LlavesController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? estado,
-        [FromQuery] string? busqueda)
+        [FromQuery] string? busqueda,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
         var query = _db.Llaves
             .Include(l => l.Ambiente)
@@ -66,8 +68,11 @@ public class LlavesController : ControllerBase
                 l.Ambiente.Nombre.Contains(busqueda));
 
         var llaves = await query
+            .AsNoTracking()
             .OrderBy(l => l.Ambiente.Nombre)
             .ThenBy(l => l.Codigo)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(l => new
             {
                 l.IdLlave,

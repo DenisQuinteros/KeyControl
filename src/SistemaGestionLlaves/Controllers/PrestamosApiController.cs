@@ -46,7 +46,7 @@ public class PrestamosApiController : ControllerBase
     /// Parámetro opcional: estado (A/D/V/C).
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? estado)
+    public async Task<IActionResult> GetAll([FromQuery] string? estado, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var query = _db.Prestamos
             .Include(p => p.Llave)
@@ -57,7 +57,10 @@ public class PrestamosApiController : ControllerBase
             query = query.Where(p => p.Estado == estado.ToUpper());
 
         var prestamos = await query
+            .AsNoTracking()
             .OrderByDescending(p => p.FechaHoraPrestamo)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new
             {
                 p.IdPrestamo,

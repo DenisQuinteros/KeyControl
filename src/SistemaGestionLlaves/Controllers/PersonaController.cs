@@ -17,7 +17,7 @@ namespace SistemaGestionLlaves.Controllers
         // ==========================
         // LISTAR
         // ==========================
-        public async Task<IActionResult> Index(string buscar)
+        public async Task<IActionResult> Index(string buscar, int page = 1, int pageSize = 10)
         {
             var personas = from p in _context.Personas
                            select p;
@@ -30,7 +30,19 @@ namespace SistemaGestionLlaves.Controllers
                     p.Ci.Contains(buscar));
             }
 
-            return View(await personas.ToListAsync());
+            int totalItems = await personas.CountAsync();
+            var items = await personas
+                .AsNoTracking()
+                .OrderBy(p => p.IdPersona)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+            ViewBag.Buscar = buscar;
+
+            return View(items);
         }
 
         // ==========================
