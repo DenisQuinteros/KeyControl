@@ -1,0 +1,81 @@
+@{
+    ViewData["Title"] = "Ranking de Llaves";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold text-slate-900 mb-1">
+                <i class="bi bi-key me-2 text-warning"></i>Llaves Más Utilizadas
+            </h2>
+            <p class="text-secondary small">Ranking de llaves según el volumen de préstamos registrados.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-soft-red" onclick="exportarTopPdf()">
+                <i class="bi bi-file-pdf me-1"></i>Exportar Ranking
+            </button>
+            <a asp-controller="Reportes" asp-action="Index" class="btn btn-soft-slate">
+                <i class="bi bi-arrow-left me-1"></i> Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="ui-card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 100px;">Ranking</th>
+                        <th>Código Llave</th>
+                        <th>Ambiente</th>
+                        <th class="text-end">Total Préstamos</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTopLlaves">
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">Cargando ranking...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    async function cargarTop() {
+        const res = await fetch('/Reportes/TopLlavesData?top=20');
+        const json = await res.json();
+        const container = document.getElementById('tablaTopLlaves');
+
+        if (json.total === 0) {
+            container.innerHTML = '<tr><td colspan="4" class="text-center py-5">No hay actividad registrada aún</td></tr>';
+            return;
+        }
+
+        container.innerHTML = json.data.map((l, i) => `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge ${i < 3 ? 'bg-warning text-dark' : 'bg-light text-muted'}" style="width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; font-size:10px;">
+                            ${i + 1}
+                        </span>
+                    </div>
+                </td>
+                <td class="fw-bold text-primary">${l.codigo}</td>
+                <td>${l.ambiente}</td>
+                <td class="text-end">
+                    <span class="fw-bold">${l.totalPrestamos}</span>
+                    <span class="text-muted small ms-1">usos</span>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function exportarTopPdf() {
+        window.open('/Reportes/ExportarTopLlavesPdf?top=20', '_blank');
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarTop);
+</script>
+}

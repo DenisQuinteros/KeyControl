@@ -1,0 +1,27 @@
+@model (string Title, string Subtitle, string Icon, string ActionLink, string ActionText)
+
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+        <h2 class="fw-bold" style="color: var(--text-brand); font-size:1.5rem; margin-bottom:2px;">
+            @if (!string.IsNullOrEmpty(Model.Icon))
+            {
+                <i class="bi bi-@Model.Icon me-2" style="color: var(--accent-blue);"></i>
+            }
+            @Model.Title
+        </h2>
+        
+        @if (!string.IsNullOrEmpty(Model.Subtitle))
+        {
+            <p class="mb-0 text-muted" style="font-size:0.875rem;">@Model.Subtitle</p>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ActionLink) && !string.IsNullOrEmpty(Model.ActionText))
+    {
+        <a href="@Model.ActionLink" 
+           class="btn btn-primary d-flex align-items-center gap-2 px-4 py-2 shadow-sm border-0"
+           style="background: var(--accent-blue); border-radius:12px; font-weight:600;">
+            <i class="bi bi-plus-lg"></i> @Model.ActionText
+        </a>
+    }
+</div>

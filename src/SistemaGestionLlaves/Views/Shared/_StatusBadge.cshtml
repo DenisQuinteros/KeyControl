@@ -1,0 +1,19 @@
+@model string
+@{
+    // Mapeo unificado a clases globales de site.css
+    var (cssClass, label, icon) = Model switch
+    {
+        "A" => ("badge-green", "Activo", "check-circle"),
+        "I" => ("badge-red", "Inactivo", "x-circle"),
+        "P" => ("badge-amber", "Prestado", "arrow-repeat"),
+        "D" => ("badge-green", "Disponible", "check-lg"),
+        "R" => ("badge-blue", "Reservado", "calendar-event"),
+        "C" => ("badge-blue", "Confirmada", "calendar-check"),
+        "V" => ("badge-red", "Vencido", "exclamation-triangle"),
+        "X" => ("badge-slate", "Cancelado", "slash-circle"),
+        _ => ("badge-slate", Model ?? "Desconocido", "question-circle")
+    };
+}
+<span class="status-badge @cssClass">
+    <i class="bi bi-@icon"></i> @label
+</span>

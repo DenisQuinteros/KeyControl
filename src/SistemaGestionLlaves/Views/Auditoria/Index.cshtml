@@ -1,0 +1,83 @@
+@model IEnumerable<SistemaGestionLlaves.Models.Auditoria>
+@{
+    ViewData["Title"] = "Auditoría del Sistema";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="fw-bold text-slate-900 mb-1">
+                <i class="bi bi-shield-check me-2 text-primary"></i>Registro de Auditoría
+            </h2>
+            <p class="text-secondary small">Monitoreo automático de operaciones INSERT, UPDATE y DELETE.</p>
+        </div>
+    </div>
+
+    <div class="ui-card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-modern table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Fecha (UTC)</th>
+                        <th>Usuario</th>
+                        <th>Tabla</th>
+                        <th>Operación</th>
+                        <th>Datos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No hay registros de auditoría.</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Fecha.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td><span class="badge bg-secondary">@(item.Usuario ?? "Sistema")</span></td>
+                                <td class="fw-bold text-slate-800">@item.Tabla</td>
+                                <td>
+                                    @if (item.Operacion == "INSERT")
+                                    {
+                                        <span class="badge bg-success">@item.Operacion</span>
+                                    }
+                                    else if (item.Operacion == "UPDATE")
+                                    {
+                                        <span class="badge bg-warning text-dark">@item.Operacion</span>
+                                    }
+                                    else if (item.Operacion == "DELETE")
+                                    {
+                                        <span class="badge bg-danger">@item.Operacion</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Operacion</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#datos-@item.Id">
+                                        <i class="bi bi-eye"></i> Ver
+                                    </button>
+                                    <div class="collapse mt-2" id="datos-@item.Id">
+                                        @if (!string.IsNullOrEmpty(item.DatosAntes) && item.DatosAntes != "{}")
+                                        {
+                                            <div class="small mb-1"><strong>Antes:</strong> <code class="text-muted d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosAntes</code></div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.DatosDespues) && item.DatosDespues != "{}")
+                                        {
+                                            <div class="small"><strong>Después:</strong> <code class="text-success d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosDespues</code></div>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
