@@ -18,7 +18,7 @@ namespace SistemaGestionLlaves.Controllers
         }
 
         // LISTAR
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(string buscar, int page = 1, int pageSize = 10)
         {
             var query = _context.Ambientes
                 .Include(a => a.TipoAmbiente)
@@ -26,6 +26,12 @@ namespace SistemaGestionLlaves.Controllers
                 .Where(a => a.Estado == "A")
                 .AsQueryable();
 
+            if (!string.IsNullOrEmpty(buscar))
+            {
+                query = query.Where(a => a.Nombre.Contains(buscar) || a.Codigo.Contains(buscar));
+            }
+
+            ViewBag.Buscar = buscar;
             int totalItems = await query.CountAsync();
             var ambientes = await query
                 .AsNoTracking()

@@ -278,3 +278,13 @@ body {
     color: #fbbf24;
 }
 
+.status-secondary {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+[data-theme="dark"] .status-secondary {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: #94a3b8;
+}
+

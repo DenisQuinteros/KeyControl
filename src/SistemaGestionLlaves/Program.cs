@@ -1,7 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
 using SistemaGestionLlaves.Data;
+using SistemaGestionLlaves.Services;
+
+// Required for QuestPDF to work without a commercial license
+QuestPDF.Settings.License = LicenseType.Community;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,8 +23,12 @@ var requireAuthenticated = new AuthorizationPolicyBuilder()
 builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AuthorizeFilter(requireAuthenticated)));
 
-// Entity Framework + SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
+// Entity Framework Core + PostgreSQL + Auditoría
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditInterceptor>();
+
+builder.Services.AddDbContext<ApplicationDbContext>((serviceProvider, options) =>
+{
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsqlOptions =>
@@ -29,8 +38,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 maxRetryDelay: TimeSpan.FromSeconds(30),
                 errorCodesToAdd: null);
         }
-    )
-);
+    );
+
+    // Interceptor de auditoría EF Core
+    options.AddInterceptors(serviceProvider.GetRequiredService<AuditInterceptor>());
+});
 
 // Autenticación por cookies
 builder.Services.AddAuthentication("CookieAuth")
@@ -43,6 +55,11 @@ builder.Services.AddAuthentication("CookieAuth")
     });
 
 builder.Services.AddAuthorization();
+
+// Capa de servicios
+builder.Services.AddScoped<IPrestamoService, PrestamoService>();
+builder.Services.AddScoped<IReportesService, ReportesService>();
+builder.Services.AddSingleton<IPdfService, PdfService>();
 
 // -------------------------------------------------------
 // Pipeline
@@ -75,6 +92,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

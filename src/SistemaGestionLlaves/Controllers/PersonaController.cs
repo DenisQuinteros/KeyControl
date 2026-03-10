@@ -19,22 +19,25 @@ namespace SistemaGestionLlaves.Controllers
         // ==========================
         // LISTAR
         // ==========================
-        public async Task<IActionResult> Index(string buscar, int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(string buscar, string estado, int page = 1, int pageSize = 10)
         {
-            var personas = from p in _context.Personas
-                           where p.Estado == "A"
-                           select p;
+            var query = _context.Personas.AsQueryable();
+
+            if (!string.IsNullOrEmpty(estado))
+            {
+                query = query.Where(p => p.Estado == estado);
+            }
 
             if (!string.IsNullOrEmpty(buscar))
             {
-                personas = personas.Where(p =>
+                query = query.Where(p =>
                     p.Nombres.Contains(buscar) ||
                     p.Apellidos.Contains(buscar) ||
                     p.Ci.Contains(buscar));
             }
 
-            int totalItems = await personas.CountAsync();
-            var items = await personas
+            int totalItems = await query.CountAsync();
+            var items = await query
                 .AsNoTracking()
                 .OrderBy(p => p.IdPersona)
                 .Skip((page - 1) * pageSize)
@@ -44,6 +47,7 @@ namespace SistemaGestionLlaves.Controllers
             ViewBag.CurrentPage = page;
             ViewBag.TotalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
             ViewBag.Buscar = buscar;
+            ViewBag.Estado = estado;
 
             return View(items);
         }

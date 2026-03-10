@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaGestionLlaves.Data;
 using SistemaGestionLlaves.Models;
+using SistemaGestionLlaves.Services;
 
 namespace SistemaGestionLlaves.Controllers;
 
@@ -35,11 +36,16 @@ public class PrestamosApiController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly ILogger<PrestamosApiController> _logger;
+    private readonly IPrestamoService _prestamoService;
 
-    public PrestamosApiController(ApplicationDbContext db, ILogger<PrestamosApiController> logger)
+    public PrestamosApiController(
+        ApplicationDbContext db,
+        ILogger<PrestamosApiController> logger,
+        IPrestamoService prestamoService)
     {
         _db = db;
         _logger = logger;
+        _prestamoService = prestamoService;
     }
 
     // ── GET /api/prestamos ───────────────────────────────────
@@ -48,18 +54,30 @@ public class PrestamosApiController : ControllerBase
     /// Parámetro opcional: estado (A/D/V/C).
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? estado, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    public async Task<IActionResult> GetAll([FromQuery] string? buscar, [FromQuery] string? estado, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
     {
         var query = _db.Prestamos
-            .Include(p => p.Llave)
+            .Include(p => p.Llave).ThenInclude(l => l.Ambiente)
             .Include(p => p.Persona)
+            .AsNoTracking()
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(estado))
             query = query.Where(p => p.Estado == estado.ToUpper());
 
+        if (!string.IsNullOrWhiteSpace(buscar))
+        {
+            var b = buscar.ToLower();
+            query = query.Where(p =>
+                p.Persona.Nombres.ToLower().Contains(b) ||
+                p.Persona.Apellidos.ToLower().Contains(b) ||
+                p.Persona.Ci.ToLower().Contains(b) ||
+                p.Llave.Codigo.ToLower().Contains(b) ||
+                (p.Llave.Ambiente != null && p.Llave.Ambiente.Nombre.ToLower().Contains(b))
+            );
+        }
+
         var prestamos = await query
-            .AsNoTracking()
             .OrderByDescending(p => p.FechaHoraPrestamo)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -155,7 +173,7 @@ public class PrestamosApiController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Crear([FromBody] PrestamoRequest dto)
     {
-        // Validaciones básicas
+        // Validaciones básicas de entrada
         if (dto.IdLlave <= 0)
             return BadRequest(new ApiResponse(false, "El Id de llave es obligatorio."));
 
@@ -170,57 +188,20 @@ public class PrestamosApiController : ControllerBase
             return BadRequest(new ApiResponse(false,
                 "La fecha de devolución esperada debe ser posterior a la fecha actual."));
 
-        // Verificar que la llave existe
-        var llave = await _db.Llaves.FindAsync(dto.IdLlave);
-        if (llave == null)
-            return NotFound(new ApiResponse(false, $"Llave con Id={dto.IdLlave} no encontrada."));
+        var resultado = await _prestamoService.CrearPrestamoAsync(
+            dto.IdLlave,
+            dto.IdPersona,
+            dto.IdUsuario,
+            dto.FechaHoraDevolucionEsperada,
+            dto.Observaciones);
 
-        // Regla 1: la llave debe estar Disponible
-        if (llave.Estado != "D")
-            return UnprocessableEntity(new ApiResponse(false,
-                $"La llave '{llave.Codigo}' no está disponible (estado actual: {llave.Estado})."));
+        if (!resultado.Success)
+            return UnprocessableEntity(new ApiResponse(false, resultado.Message));
 
-        // Regla 2: no debe existir préstamo activo para esa llave
-        bool tienePrestamoActivo = await _db.Prestamos
-            .AnyAsync(p => p.IdLlave == dto.IdLlave && p.Estado == "A");
-        if (tienePrestamoActivo)
-            return UnprocessableEntity(new ApiResponse(false,
-                $"La llave '{llave.Codigo}' ya tiene un préstamo activo."));
-
-        // Verificar que la persona existe
-        var persona = await _db.Personas.FindAsync(dto.IdPersona);
-        if (persona == null)
-            return NotFound(new ApiResponse(false, $"Persona con Id={dto.IdPersona} no encontrada."));
-
-        // Verificar que el usuario (operador) existe
-        bool usuarioExiste = await _db.Usuarios.AnyAsync(u => u.IdUsuario == dto.IdUsuario);
-        if (!usuarioExiste)
-            return NotFound(new ApiResponse(false, $"Usuario con Id={dto.IdUsuario} no encontrado."));
-
-        // Crear préstamo
-        var prestamo = new Prestamo
-        {
-            IdLlave                    = dto.IdLlave,
-            IdPersona                  = dto.IdPersona,
-            IdUsuario                  = dto.IdUsuario,
-            FechaHoraPrestamo          = DateTime.UtcNow,
-            FechaHoraDevolucionEsperada = dto.FechaHoraDevolucionEsperada,
-            Estado                     = "A",
-            Observaciones              = dto.Observaciones?.Trim()
-        };
-
-        // Cambiar estado de la llave
-        llave.Estado = "P";
-
-        _db.Prestamos.Add(prestamo);
-        await _db.SaveChangesAsync();
-
-        _logger.LogInformation(
-            "Préstamo creado: Id={Id}, Llave={Llave}, Persona={Persona}",
-            prestamo.IdPrestamo, llave.Codigo, dto.IdPersona);
+        var prestamo = resultado.Prestamo!;
 
         return CreatedAtAction(nameof(GetById), new { id = prestamo.IdPrestamo },
-            new ApiResponse(true, "Préstamo registrado exitosamente.",
+            new ApiResponse(true, "Préstamo registrado correctamente.",
                 new { prestamo.IdPrestamo, prestamo.Estado }));
     }
 

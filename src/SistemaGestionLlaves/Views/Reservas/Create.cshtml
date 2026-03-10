@@ -1,16 +1,16 @@
 @{
-    ViewData["Title"] = "Nuevo Préstamo";
+    ViewData["Title"] = "Nueva Reserva";
 }
 
 <!-- Page Header -->
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
         <h2 class="fw-bold" style="color:#0f172a; font-size:1.4rem; margin-bottom:2px;">
-            <i class="bi bi-plus-circle me-2" style="color:#0369a1;"></i>Registrar Préstamo
+            <i class="bi bi-calendar-plus me-2" style="color:#0369a1;"></i>Registrar Reserva
         </h2>
-        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Complete los datos para entregar una llave</p>
+        <p class="mb-0" style="color:#64748b; font-size:0.875rem;">Planifique el uso de una llave para fechas futuras</p>
     </div>
-    <a asp-controller="Prestamos" asp-action="Index"
+    <a asp-controller="Reservas" asp-action="Index"
        class="btn d-flex align-items-center gap-2 px-4 py-2"
        style="background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:600; border:none;">
         <i class="bi bi-arrow-left"></i> Volver
@@ -22,7 +22,7 @@
 
 <!-- Formulario -->
 <div class="ui-card" style="max-width:680px;">
-    <h3 class="card-title mb-4">Datos del Préstamo</h3>
+    <h3 class="card-title mb-4">Datos de la Reserva</h3>
 
     <div id="alertMsg" class="alert d-flex align-items-center gap-2 mb-4"
          style="display:none !important; border:none; border-radius:12px;"></div>
@@ -39,14 +39,14 @@
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                     <input type="text" id="searchLlave" class="form-control border-start-0" 
-                           placeholder="Buscar por código o ambiente..." 
+                           placeholder="Buscar por código..." 
                            onkeyup="filterSelect('searchLlave', 'idLlave')">
                 </div>
             </div>
             <select id="idLlave" class="form-select"
                     style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
-                <option value="">-- Seleccione una llave disponible --</option>
-                @foreach (var item in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewData["Llaves"]!)
+                <option value="">-- Seleccione una llave --</option>
+                @foreach (var item in (List<SelectListItem>)ViewBag.Llaves)
                 {
                     <option value="@item.Value">@item.Text</option>
                 }
@@ -63,48 +63,47 @@
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-search"></i></span>
                     <input type="text" id="searchPersona" class="form-control border-start-0" 
-                           placeholder="Buscar por nombre o CI..." 
+                           placeholder="Buscar por nombre..." 
                            onkeyup="filterSelect('searchPersona', 'idPersona')">
                 </div>
             </div>
             <select id="idPersona" class="form-select"
                     style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;">
                 <option value="">-- Seleccione la persona --</option>
-                @foreach (var item in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewData["Personas"]!)
+                @foreach (var item in (List<SelectListItem>)ViewBag.Personas)
                 {
                     <option value="@item.Value">@item.Text</option>
                 }
             </select>
         </div>
 
-        <!-- Fecha devolución esperada -->
+        <!-- Fecha Inicio -->
         <div class="col-md-6">
-            <label for="fechaDevolucion" class="form-label fw-600"
+            <label for="fechaInicio" class="form-label fw-600"
                    style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
-                Devolución Esperada
+                Fecha Inicio <span class="text-danger">*</span>
             </label>
-            <input type="datetime-local" id="fechaDevolucion" class="form-control"
+            <input type="datetime-local" id="fechaInicio" class="form-control"
                    style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;" />
         </div>
 
-        <!-- Observaciones -->
-        <div class="col-12">
-            <label for="observaciones" class="form-label fw-600"
+        <!-- Fecha Fin -->
+        <div class="col-md-6">
+            <label for="fechaFin" class="form-label fw-600"
                    style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
-                Observaciones
+                Fecha Fin <span class="text-danger">*</span>
             </label>
-            <textarea id="observaciones" class="form-control" rows="3" maxlength="300"
-                      placeholder="Opcional..."
-                      style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px; resize:none;"></textarea>
+            <input type="datetime-local" id="fechaFin" class="form-control"
+                   style="border-color:#e2e8f0; background:#f8fafc; border-radius:12px;" />
         </div>
 
         <!-- Botones -->
-        <div class="col-12 d-flex gap-3 mt-2">
-            <button id="btnGuardar" onclick="registrarPrestamo()" class="btn px-5 py-2"
+        <div class="col-12 d-flex gap-3 mt-4">
+            <button id="btnGuardar" onclick="registrarReserva()" class="btn px-5 py-2"
                     style="background:#0369a1; color:white; border-radius:12px; font-weight:600; border:none;">
-                <i class="bi bi-check-lg me-1"></i>Registrar Préstamo
+                <i class="bi bi-calendar-check me-1"></i>Guardar Reserva
             </button>
-            <a asp-controller="Prestamos" asp-action="Index" class="btn px-4 py-2"
+            <a asp-controller="Reservas" asp-action="Index" class="btn px-4 py-2"
                style="background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:600; border:none;">
                 Cancelar
             </a>
@@ -114,25 +113,25 @@
 
 @section Scripts {
 <script>
-    async function registrarPrestamo() {
-        const idLlave    = parseInt(document.getElementById('idLlave').value);
-        const idPersona  = parseInt(document.getElementById('idPersona').value);
-        const fechaRaw   = document.getElementById('fechaDevolucion').value;
-        const obs        = document.getElementById('observaciones').value.trim();
+    async function registrarReserva() {
+        const idLlave     = parseInt(document.getElementById('idLlave').value);
+        const idPersona   = parseInt(document.getElementById('idPersona').value);
+        const fechaInicio = document.getElementById('fechaInicio').value;
+        const fechaFin    = document.getElementById('fechaFin').value;
 
-        if (!idLlave)   return mostrarAlert('Debe seleccionar una llave.', false);
-        if (!idPersona) return mostrarAlert('Debe seleccionar una persona.', false);
+        if (!idLlave)     return mostrarAlert('Debe seleccionar una llave.', false);
+        if (!idPersona)   return mostrarAlert('Debe seleccionar una persona.', false);
+        if (!fechaInicio) return mostrarAlert('Debe indicar la fecha de inicio.', false);
+        if (!fechaFin)    return mostrarAlert('Debe indicar la fecha de fin.', false);
 
-        // Obtener IdUsuario del operador actual desde el claim (cookie)
-        // Como fallback usamos 1; en producción leer desde un endpoint o meta tag
         const idUsuario = parseInt(document.querySelector('meta[name="uid"]')?.content ?? '0') || 1;
 
         const payload = {
             idLlave,
             idPersona,
             idUsuario,
-            fechaHoraDevolucionEsperada: fechaRaw ? new Date(fechaRaw).toISOString() : null,
-            observaciones: obs || null
+            fechaInicio,
+            fechaFin
         };
 
         const btn = document.getElementById('btnGuardar');
@@ -140,7 +139,7 @@
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando…';
 
         try {
-            const res  = await fetch('/api/prestamos', {
+            const res  = await fetch('/api/reservas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -149,16 +148,16 @@
 
             if (json.exito) {
                 mostrarAlert(json.mensaje, true);
-                setTimeout(() => window.location.href = '@Url.Action("Index", "Prestamos")', 1200);
+                setTimeout(() => window.location.href = '@Url.Action("Index", "Reservas")', 1500);
             } else {
                 mostrarAlert(json.mensaje, false);
                 btn.disabled = false;
-                btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Registrar Préstamo';
+                btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Guardar Reserva';
             }
         } catch {
-            mostrarAlert('Error de conexión. Intente nuevamente.', false);
+            mostrarAlert('Error de conexión con el servidor.', false);
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Registrar Préstamo';
+            btn.innerHTML = '<i class="bi bi-calendar-check me-1"></i>Guardar Reserva';
         }
     }
 
@@ -169,16 +168,14 @@
         el.style.color      = exito ? '#166534' : '#991b1b';
         el.innerHTML = `<i class="bi bi-${exito ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i> ${msg}`;
     }
+
     function filterSelect(inputId, selectId) {
-        const input = document.getElementById(inputId);
-        const filter = input.value.toLowerCase();
+        const input = document.getElementById(inputId).value.toLowerCase();
         const select = document.getElementById(selectId);
         const options = select.options;
-
         for (let i = 1; i < options.length; i++) {
             const text = options[i].text.toLowerCase();
-            const display = text.includes(filter) ? "" : "none";
-            options[i].style.display = display;
+            options[i].style.display = text.includes(input) ? "" : "none";
         }
     }
 </script>

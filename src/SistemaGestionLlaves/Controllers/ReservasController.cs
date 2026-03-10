@@ -22,17 +22,22 @@ public class ReservasController : Controller
     public async Task<IActionResult> Crear()
     {
         ViewBag.Llaves = await _context.Llaves
+            .Include(l => l.Ambiente)
+            .Where(l => l.Estado == "D")
+            .OrderBy(l => l.Codigo)
             .Select(l => new SelectListItem
             {
                 Value = l.IdLlave.ToString(),
-                Text = l.Codigo
+                Text = l.Codigo + " — " + (l.Ambiente != null ? l.Ambiente.Nombre : "Sin ambiente")
             }).ToListAsync();
 
         ViewBag.Personas = await _context.Personas
+            .Where(p => p.Estado == "A")
+            .OrderBy(p => p.Apellidos)
             .Select(p => new SelectListItem
             {
                 Value = p.IdPersona.ToString(),
-                Text = p.NombreCompleto
+                Text = p.Apellidos + ", " + p.Nombres + " (" + p.Ci + ")"
             }).ToListAsync();
 
         return View("Create");

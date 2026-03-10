@@ -15,8 +15,8 @@
 
     <div class="ui-card shadow-sm border-0">
         <div class="table-responsive">
-            <table class="table table-modern table-striped align-middle">
-                <thead>
+            <table class="table table-striped table-hover table-bordered align-middle">
+                <thead class="table-dark">
                     <tr>
                         <th>Fecha (UTC)</th>
                         <th>Usuario</th>
@@ -37,39 +37,35 @@
                         foreach (var item in Model)
                         {
                             <tr>
-                                <td>@item.Fecha.ToString("yyyy-MM-dd HH:mm:ss")</td>
-                                <td><span class="badge bg-secondary">@(item.Usuario ?? "Sistema")</span></td>
-                                <td class="fw-bold text-slate-800">@item.Tabla</td>
+                                <td>@item.FechaHora.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td><span class="badge bg-secondary">@(item.Usuario?.NombreUsuario ?? "Sistema")</span></td>
+                                <td class="fw-bold text-slate-800">@item.TablaAfectada</td>
                                 <td>
                                     @if (item.Operacion == "INSERT")
                                     {
-                                        <span class="badge bg-success">@item.Operacion</span>
+                                        <span class="badge bg-success"><i class="bi bi-plus-circle me-1"></i>Nuevo</span>
                                     }
                                     else if (item.Operacion == "UPDATE")
                                     {
-                                        <span class="badge bg-warning text-dark">@item.Operacion</span>
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-pencil me-1"></i>Modificado</span>
                                     }
                                     else if (item.Operacion == "DELETE")
                                     {
-                                        <span class="badge bg-danger">@item.Operacion</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">@item.Operacion</span>
+                                        <span class="badge bg-danger"><i class="bi bi-trash me-1"></i>Eliminado</span>
                                     }
                                 </td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#datos-@item.Id">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#datos-@item.IdAuditoria">
                                         <i class="bi bi-eye"></i> Ver
                                     </button>
-                                    <div class="collapse mt-2" id="datos-@item.Id">
-                                        @if (!string.IsNullOrEmpty(item.DatosAntes) && item.DatosAntes != "{}")
+                                    <div class="collapse mt-2" id="datos-@item.IdAuditoria">
+                                        @if (!string.IsNullOrEmpty(item.DatosAnteriores) && item.DatosAnteriores != "{}")
                                         {
-                                            <div class="small mb-1"><strong>Antes:</strong> <code class="text-muted d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosAntes</code></div>
+                                            <div class="small mb-1"><strong>Antes:</strong> <code class="text-muted d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosAnteriores</code></div>
                                         }
-                                        @if (!string.IsNullOrEmpty(item.DatosDespues) && item.DatosDespues != "{}")
+                                        @if (!string.IsNullOrEmpty(item.DatosNuevos) && item.DatosNuevos != "{}")
                                         {
-                                            <div class="small"><strong>Después:</strong> <code class="text-success d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosDespues</code></div>
+                                            <div class="small"><strong>Después:</strong> <code class="text-success d-block" style="word-break: break-all; max-width: 400px; max-height: 100px; overflow-y: auto;">@item.DatosNuevos</code></div>
                                         }
                                     </div>
                                 </td>

@@ -89,6 +89,60 @@ public class CuentaController : Controller
     }
 
     // -------------------------------------------------------
+    // GET /Cuenta/CambiarPassword
+    // -------------------------------------------------------
+    [HttpGet]
+    [Authorize]
+    public IActionResult CambiarPassword()
+    {
+        return View(new SistemaGestionLlaves.Models.ViewModels.CambiarPasswordViewModel());
+    }
+
+    // -------------------------------------------------------
+    // POST /Cuenta/CambiarPassword
+    // -------------------------------------------------------
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CambiarPassword(SistemaGestionLlaves.Models.ViewModels.CambiarPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out int userId))
+        {
+            return RedirectToAction("Login");
+        }
+
+        var usuario = await _context.Usuarios.FindAsync(userId);
+        if (usuario == null || usuario.Estado != "A")
+        {
+            return RedirectToAction("Login");
+        }
+
+        // 1. Validar contraseña actual
+        if (!BCrypt.Net.BCrypt.Verify(model.PasswordActual, usuario.PasswordHash))
+        {
+            ViewBag.Error = "La contraseña actual es incorrecta.";
+            return View(model);
+        }
+
+        // 2. Hashear nueva contraseña y actualizar
+        usuario.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NuevaPassword);
+        _context.Update(usuario);
+        await _context.SaveChangesAsync();
+
+        TempData["MensajeExito"] = "Su contraseña ha sido cambiada exitosamente. Por favor, vuelva a iniciar sesión.";
+        
+        // Cerrar sesión para obligar a entrar con nueva contraseña
+        await HttpContext.SignOutAsync("CookieAuth");
+        return RedirectToAction("Login");
+    }
+
+    // -------------------------------------------------------
     // GET /Cuenta/Denegado
     // -------------------------------------------------------
     public IActionResult Denegado() => View();

@@ -43,6 +43,7 @@ public class LlavesViewController : Controller
         ViewData["busqueda"] = busqueda;
         ViewData["estado"] = estado;
         ViewData["idAmbiente"] = idAmbiente;
+        ViewData["Ambientes"] = new SelectList(_context.Ambientes.Where(a => a.Estado == "A").OrderBy(a => a.Nombre), "IdAmbiente", "Nombre", idAmbiente);
 
         int totalItems = await query.CountAsync();
         var llaves = await query

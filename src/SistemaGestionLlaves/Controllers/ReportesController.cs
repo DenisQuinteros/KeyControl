@@ -81,6 +81,14 @@ public class ReportesController : Controller
         public double PromedioHorasPrestamo { get; set; }
     }
 
+    private sealed class TopLlaveItem
+    {
+        public int IdLlave { get; set; }
+        public string Codigo { get; set; } = string.Empty;
+        public string Ambiente { get; set; } = "-";
+        public int TotalPrestamos { get; set; }
+    }
+
     public ReportesController(ApplicationDbContext context)
     {
         _context = context;
@@ -114,14 +122,21 @@ public class ReportesController : Controller
         return View();
     }
 
+    public async Task<IActionResult> TopLlaves()
+    {
+        await CargarFiltrosAsync();
+        return View();
+    }
+
     public async Task<IActionResult> PrestamosVencidos()
     {
         await CargarFiltrosAsync();
         return View();
     }
 
-    public IActionResult ActividadAmbiente()
+    public async Task<IActionResult> ActividadAmbiente()
     {
+        await CargarFiltrosAsync();
         return View();
     }
 
@@ -129,6 +144,7 @@ public class ReportesController : Controller
     {
         ViewData["Ambientes"] = new SelectList(
             await _context.Ambientes
+                .AsNoTracking()
                 .Where(a => a.Estado == "A")
                 .OrderBy(a => a.Nombre)
                 .Select(a => new { a.IdAmbiente, Nombre = a.Codigo + " — " + a.Nombre })
@@ -137,6 +153,7 @@ public class ReportesController : Controller
 
         ViewData["Llaves"] = new SelectList(
             await _context.Llaves
+                .AsNoTracking()
                 .Where(l => l.Estado != "I")
                 .OrderBy(l => l.Codigo)
                 .Select(l => new { l.IdLlave, Nombre = l.Codigo })
@@ -157,9 +174,12 @@ public class ReportesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> PrestamosData(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado)
+    public async Task<IActionResult> PrestamosData(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado, string? persona)
     {
-        var data = await ObtenerPrestamosAsync(fechaDesde, fechaHasta, idAmbiente, estado);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var error))
+            return BadRequest(new { error });
+
+        var data = await ObtenerPrestamosAsync(fechaDesde, fechaHasta, idAmbiente, estado, persona);
 
         return Ok(new
         {
@@ -175,6 +195,9 @@ public class ReportesController : Controller
     [HttpGet]
     public async Task<IActionResult> TopPersonasData(DateTime? fechaDesde, DateTime? fechaHasta, int top = 10)
     {
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var error))
+            return BadRequest(new { error });
+
         var ranking = await ObtenerTopPersonasAsync(fechaDesde, fechaHasta, top);
 
         return Ok(new
@@ -192,16 +215,32 @@ public class ReportesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> PrestamosVencidosData(int? idAmbiente)
+    public async Task<IActionResult> PrestamosVencidosData(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? persona)
     {
-        var data = await ObtenerPrestamosVencidosAsync(idAmbiente);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var error))
+            return BadRequest(new { error });
+
+        var data = await ObtenerPrestamosVencidosAsync(fechaDesde, fechaHasta, idAmbiente, persona);
         return Ok(new { total = data.Count, data });
     }
 
     [HttpGet]
-    public async Task<IActionResult> ActividadAmbienteData(DateTime? fechaDesde, DateTime? fechaHasta)
+    public async Task<IActionResult> TopLlavesData(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, int top = 20)
     {
-        var data = await ObtenerActividadAmbienteAsync(fechaDesde, fechaHasta);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var error))
+            return BadRequest(new { error });
+
+        var data = await ObtenerTopLlavesAsync(fechaDesde, fechaHasta, idAmbiente, Math.Min(Math.Max(top, 1), 100));
+        return Ok(new { total = data.Count, data });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ActividadAmbienteData(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente)
+    {
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var error))
+            return BadRequest(new { error });
+
+        var data = await ObtenerActividadAmbienteAsync(fechaDesde, fechaHasta, idAmbiente);
         return Ok(new { totalActividad = data.Sum(x => x.TotalActividad), data });
     }
 
@@ -273,9 +312,12 @@ public class ReportesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportarPrestamosPdf(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado)
+    public async Task<IActionResult> ExportarPrestamosPdf(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado, string? persona)
     {
-        var data = await ObtenerPrestamosAsync(fechaDesde, fechaHasta, idAmbiente, estado);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var err))
+            return BadRequest(new { error = err });
+
+        var data = await ObtenerPrestamosAsync(fechaDesde, fechaHasta, idAmbiente, estado, persona);
 
         var pdf = Document.Create(container =>
         {
@@ -470,9 +512,72 @@ public class ReportesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportarPrestamosVencidosPdf(int? idAmbiente)
+    public async Task<IActionResult> ExportarTopLlavesPdf(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, int top = 20)
     {
-        var data = await ObtenerPrestamosVencidosAsync(idAmbiente);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var err))
+            return BadRequest(new { error = err });
+
+        var data = await ObtenerTopLlavesAsync(fechaDesde, fechaHasta, idAmbiente, Math.Min(Math.Max(top, 1), 100));
+
+        var pdf = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(28);
+                page.DefaultTextStyle(x => x.FontSize(10));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("Ranking de Llaves Más Utilizadas").SemiBold().FontSize(16);
+                    col.Item().Text($"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}").FontColor(Colors.Grey.Darken1);
+                });
+
+                page.Content().PaddingTop(12).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        columns.RelativeColumn(0.8f);
+                        columns.RelativeColumn(1.5f);
+                        columns.RelativeColumn(2.5f);
+                        columns.RelativeColumn(1.2f);
+                    });
+
+                    table.Header(header =>
+                    {
+                        header.Cell().Element(CellHeader).Text("#");
+                        header.Cell().Element(CellHeader).Text("Llave");
+                        header.Cell().Element(CellHeader).Text("Ambiente");
+                        header.Cell().Element(CellHeader).Text("Total Préstamos");
+                    });
+
+                    for (var i = 0; i < data.Count; i++)
+                    {
+                        var item = data[i];
+                        table.Cell().Element(CellBody).Text((i + 1).ToString());
+                        table.Cell().Element(CellBody).Text(item.Codigo);
+                        table.Cell().Element(CellBody).Text(item.Ambiente);
+                        table.Cell().Element(CellBody).Text(item.TotalPrestamos.ToString());
+                    }
+
+                    if (!data.Any())
+                        table.Cell().ColumnSpan(4).Element(CellBody).AlignCenter().Text("Sin datos para el filtro seleccionado.");
+                });
+
+                page.Footer().AlignRight().Text($"Total: {data.Count} llave(s)").FontColor(Colors.Grey.Darken1);
+            });
+        }).GeneratePdf();
+
+        return File(pdf, "application/pdf", $"reporte_ranking_llaves_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportarPrestamosVencidosPdf(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? persona)
+    {
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var err))
+            return BadRequest(new { error = err });
+
+        var data = await ObtenerPrestamosVencidosAsync(fechaDesde, fechaHasta, idAmbiente, persona);
 
         var pdf = Document.Create(container =>
         {
@@ -535,9 +640,12 @@ public class ReportesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportarActividadAmbientePdf(DateTime? fechaDesde, DateTime? fechaHasta)
+    public async Task<IActionResult> ExportarActividadAmbientePdf(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente)
     {
-        var data = await ObtenerActividadAmbienteAsync(fechaDesde, fechaHasta);
+        if (ValidarFechasInconsistentes(fechaDesde, fechaHasta, out var err))
+            return BadRequest(new { error = err });
+
+        var data = await ObtenerActividadAmbienteAsync(fechaDesde, fechaHasta, idAmbiente);
 
         var pdf = Document.Create(container =>
         {
@@ -601,6 +709,7 @@ public class ReportesController : Controller
     private async Task<List<ReservaReporteItem>> ObtenerReservasAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente)
     {
         var query = _context.Reservas
+            .AsNoTracking()
             .Include(r => r.Persona)
             .Include(r => r.Llave)
                 .ThenInclude(l => l.Ambiente)
@@ -636,9 +745,10 @@ public class ReportesController : Controller
             .ToListAsync();
     }
 
-    private async Task<List<PrestamoReporteItem>> ObtenerPrestamosAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado)
+    private async Task<List<PrestamoReporteItem>> ObtenerPrestamosAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? estado, string? persona)
     {
         var query = _context.Prestamos
+            .AsNoTracking()
             .Include(p => p.Persona)
             .Include(p => p.Llave)
                 .ThenInclude(l => l.Ambiente)
@@ -662,6 +772,12 @@ public class ReportesController : Controller
         if (!string.IsNullOrWhiteSpace(estado))
             query = query.Where(p => p.Estado == estado);
 
+        if (!string.IsNullOrWhiteSpace(persona))
+        {
+            var pLower = persona.Trim().ToLower();
+            query = query.Where(p => (p.Persona.Nombres + " " + p.Persona.Apellidos).ToLower().Contains(pLower) || p.Persona.Ci.Contains(persona));
+        }
+
         return await query
             .OrderByDescending(p => p.FechaHoraPrestamo)
             .Select(p => new PrestamoReporteItem
@@ -679,8 +795,8 @@ public class ReportesController : Controller
 
     private async Task<List<TopPersonaReporteItem>> ObtenerTopPersonasAsync(DateTime? fechaDesde, DateTime? fechaHasta, int top)
     {
-        var prestamos = _context.Prestamos.AsQueryable();
-        var reservas = _context.Reservas.AsQueryable();
+        var prestamos = _context.Prestamos.AsNoTracking().AsQueryable();
+        var reservas = _context.Reservas.AsNoTracking().AsQueryable();
 
         if (fechaDesde.HasValue)
         {
@@ -707,6 +823,7 @@ public class ReportesController : Controller
             .ToListAsync();
 
         var personas = await _context.Personas
+            .AsNoTracking()
             .Select(p => new { p.IdPersona, Nombre = p.Nombres + " " + p.Apellidos })
             .ToDictionaryAsync(p => p.IdPersona, p => p.Nombre);
 
@@ -744,6 +861,7 @@ public class ReportesController : Controller
     private async Task<List<InventarioLlaveItem>> ObtenerInventarioLlavesAsync(int? idAmbiente, string? estado)
     {
         var query = _context.Llaves
+            .AsNoTracking()
             .Include(l => l.Ambiente)
             .AsQueryable();
 
@@ -759,12 +877,14 @@ public class ReportesController : Controller
         var idLlaves = llaves.Select(l => l.IdLlave).ToList();
 
         var conteoPrestamos = await _context.Prestamos
+            .AsNoTracking()
             .Where(p => idLlaves.Contains(p.IdLlave))
             .GroupBy(p => p.IdLlave)
             .Select(g => new { IdLlave = g.Key, Total = g.Count() })
             .ToDictionaryAsync(x => x.IdLlave, x => x.Total);
 
         var ultimosPrestamos = await _context.Prestamos
+            .AsNoTracking()
             .Include(p => p.Persona)
             .Where(p => idLlaves.Contains(p.IdLlave))
             .OrderByDescending(p => p.FechaHoraPrestamo)
@@ -791,11 +911,12 @@ public class ReportesController : Controller
         }).ToList();
     }
 
-    private async Task<List<PrestamoVencidoItem>> ObtenerPrestamosVencidosAsync(int? idAmbiente)
+    private async Task<List<PrestamoVencidoItem>> ObtenerPrestamosVencidosAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, string? persona)
     {
         var ahora = DateTime.UtcNow;
 
         var query = _context.Prestamos
+            .AsNoTracking()
             .Include(p => p.Persona)
             .Include(p => p.Llave)
                 .ThenInclude(l => l.Ambiente)
@@ -804,8 +925,26 @@ public class ReportesController : Controller
                      && p.FechaHoraDevolucionEsperada.Value < ahora)
             .AsQueryable();
 
+        if (fechaDesde.HasValue)
+        {
+            var desde = DateTime.SpecifyKind(fechaDesde.Value.Date, DateTimeKind.Utc);
+            query = query.Where(p => p.FechaHoraPrestamo >= desde);
+        }
+
+        if (fechaHasta.HasValue)
+        {
+            var hasta = DateTime.SpecifyKind(fechaHasta.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+            query = query.Where(p => p.FechaHoraPrestamo <= hasta);
+        }
+
         if (idAmbiente.HasValue)
             query = query.Where(p => p.Llave.IdAmbiente == idAmbiente.Value);
+
+        if (!string.IsNullOrWhiteSpace(persona))
+        {
+            var pLower = persona.Trim().ToLower();
+            query = query.Where(p => (p.Persona.Nombres + " " + p.Persona.Apellidos).ToLower().Contains(pLower) || p.Persona.Ci.Contains(persona));
+        }
 
         var prestamos = await query.OrderBy(p => p.FechaHoraDevolucionEsperada).ToListAsync();
 
@@ -823,54 +962,94 @@ public class ReportesController : Controller
         }).ToList();
     }
 
-    private async Task<List<ActividadAmbienteItem>> ObtenerActividadAmbienteAsync(DateTime? fechaDesde, DateTime? fechaHasta)
+    private async Task<List<TopLlaveItem>> ObtenerTopLlavesAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente, int top)
     {
-        var prestamosQuery = _context.Prestamos.Include(p => p.Llave).AsQueryable();
-        var reservasQuery = _context.Reservas.Include(r => r.Llave).AsQueryable();
+        var query = _context.Prestamos
+            .AsNoTracking()
+            .Join(_context.Llaves, p => p.IdLlave, l => l.IdLlave, (p, l) => new { p, l })
+            .Join(_context.Ambientes, x => x.l.IdAmbiente, a => a.IdAmbiente, (x, a) => new { x.p, x.l, a })
+            .AsQueryable();
 
         if (fechaDesde.HasValue)
         {
             var desde = DateTime.SpecifyKind(fechaDesde.Value.Date, DateTimeKind.Utc);
-            prestamosQuery = prestamosQuery.Where(p => p.FechaHoraPrestamo >= desde);
-            reservasQuery = reservasQuery.Where(r => r.FechaInicio >= desde);
+            query = query.Where(x => x.p.FechaHoraPrestamo >= desde);
         }
 
         if (fechaHasta.HasValue)
         {
             var hasta = DateTime.SpecifyKind(fechaHasta.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
-            prestamosQuery = prestamosQuery.Where(p => p.FechaHoraPrestamo <= hasta);
-            reservasQuery = reservasQuery.Where(r => r.FechaInicio <= hasta);
+            query = query.Where(x => x.p.FechaHoraPrestamo <= hasta);
         }
 
-        var prestamos = await prestamosQuery.ToListAsync();
-        var reservas = await reservasQuery.ToListAsync();
+        if (idAmbiente.HasValue)
+            query = query.Where(x => x.l.IdAmbiente == idAmbiente.Value);
 
-        var ambientes = await _context.Ambientes
-            .Where(a => a.Estado == "A")
-            .OrderBy(a => a.Nombre)
+        var ranking = await query
+            .GroupBy(x => new { x.l.IdLlave, x.l.Codigo, x.a.Nombre })
+            .Select(g => new TopLlaveItem
+            {
+                IdLlave = g.Key.IdLlave,
+                Codigo = g.Key.Codigo,
+                Ambiente = g.Key.Nombre ?? "-",
+                TotalPrestamos = g.Count()
+            })
+            .OrderByDescending(x => x.TotalPrestamos)
+            .Take(top)
             .ToListAsync();
 
-        return ambientes.Select(a =>
-        {
-            var pres = prestamos.Where(p => p.Llave.IdAmbiente == a.IdAmbiente).ToList();
-            var res = reservas.Where(r => r.Llave.IdAmbiente == a.IdAmbiente).ToList();
-            var conDev = pres.Where(p => p.FechaHoraDevolucionReal.HasValue).ToList();
-            var horasTotal = conDev.Sum(p => (p.FechaHoraDevolucionReal!.Value - p.FechaHoraPrestamo).TotalHours);
+        return ranking;
+    }
 
-            return new ActividadAmbienteItem
+    private async Task<List<ActividadAmbienteItem>> ObtenerActividadAmbienteAsync(DateTime? fechaDesde, DateTime? fechaHasta, int? idAmbiente)
+    {
+        var desde = fechaDesde.HasValue ? DateTime.SpecifyKind(fechaDesde.Value.Date, DateTimeKind.Utc) : (DateTime?)null;
+        var hasta = fechaHasta.HasValue ? DateTime.SpecifyKind(fechaHasta.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc) : (DateTime?)null;
+
+        var ambientesQuery = _context.Ambientes
+            .AsNoTracking()
+            .Where(a => a.Estado == "A");
+
+        if (idAmbiente.HasValue)
+            ambientesQuery = ambientesQuery.Where(a => a.IdAmbiente == idAmbiente.Value);
+
+        var resultado = await ambientesQuery
+            .Select(a => new
             {
-                IdAmbiente = a.IdAmbiente,
-                Codigo = a.Codigo,
-                Ambiente = a.Nombre,
-                TotalPrestamos = pres.Count,
-                TotalReservas = res.Count,
-                TotalActividad = pres.Count + res.Count,
-                PromedioHorasPrestamo = conDev.Count > 0 ? Math.Round(horasTotal / conDev.Count, 1) : 0
-            };
-        })
-        .Where(x => x.TotalActividad > 0)
-        .OrderByDescending(x => x.TotalActividad)
-        .ToList();
+                a.IdAmbiente,
+                a.Codigo,
+                a.Nombre,
+                PrestamosCount = a.Llaves.SelectMany(l => l.Prestamos)
+                    .Count(p => (!desde.HasValue || p.FechaHoraPrestamo >= desde) && (!hasta.HasValue || p.FechaHoraPrestamo <= hasta)),
+                ReservasCount = a.Llaves.SelectMany(l => l.Reservas)
+                    .Count(r => (!desde.HasValue || r.FechaInicio >= desde) && (!hasta.HasValue || r.FechaInicio <= hasta)),
+                HorasUso = a.Llaves.SelectMany(l => l.Prestamos)
+                    .Where(p => p.FechaHoraDevolucionReal.HasValue &&
+                               (!desde.HasValue || p.FechaHoraPrestamo >= desde) &&
+                               (!hasta.HasValue || p.FechaHoraPrestamo <= hasta))
+                    .Select(p => (double)(p.FechaHoraDevolucionReal!.Value - p.FechaHoraPrestamo).TotalHours)
+            })
+            .Where(x => (x.PrestamosCount + x.ReservasCount) > 0)
+            .ToListAsync();
+
+        return resultado
+            .Select(x =>
+            {
+                var horas = x.HorasUso.ToList();
+                var promHoras = horas.Count > 0 ? Math.Round(horas.Average(), 1) : 0.0;
+                return new ActividadAmbienteItem
+                {
+                    IdAmbiente = x.IdAmbiente,
+                    Codigo = x.Codigo,
+                    Ambiente = x.Nombre,
+                    TotalPrestamos = x.PrestamosCount,
+                    TotalReservas = x.ReservasCount,
+                    TotalActividad = x.PrestamosCount + x.ReservasCount,
+                    PromedioHorasPrestamo = promHoras
+                };
+            })
+            .OrderByDescending(x => x.TotalActividad)
+            .ToList();
     }
 
     private static IContainer CellHeader(IContainer container)
@@ -927,5 +1106,15 @@ public class ReportesController : Controller
             "I" => "Inactiva",
             _ => estado
         };
+    }
+
+    /// <summary>Valida que fechaDesde &lt;= fechaHasta cuando ambas están definidas.</summary>
+    private static bool ValidarFechasInconsistentes(DateTime? fechaDesde, DateTime? fechaHasta, out string? mensaje)
+    {
+        mensaje = null;
+        if (!fechaDesde.HasValue || !fechaHasta.HasValue) return false;
+        if (fechaDesde.Value.Date <= fechaHasta.Value.Date) return false;
+        mensaje = "La fecha 'Desde' debe ser anterior o igual a la fecha 'Hasta'.";
+        return true;
     }
 }

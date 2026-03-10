@@ -18,8 +18,9 @@ public class AuditoriaController : Controller
     public async Task<IActionResult> Index()
     {
         var logs = await _context.Auditorias
+            .Include(a => a.Usuario)
             .AsNoTracking()
-            .OrderByDescending(a => a.Fecha)
+            .OrderByDescending(a => a.FechaHora)
             .Take(200)
             .ToListAsync();
 

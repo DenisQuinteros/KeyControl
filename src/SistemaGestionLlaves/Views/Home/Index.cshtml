@@ -3,194 +3,224 @@
 }
 
 <div class="row g-4 mb-4">
-    <!-- Resumen Principal -->
-    <div class="col-lg-8">
-        <div class="row g-4 mb-4">
-            <!-- Tarjeta 1 (Azul oscuro / Teal simulando la tarjeta de crédito) -->
-            <div class="col-md-6">
-                <div class="ui-card bg-teal-card d-flex flex-column justify-content-between">
-                    <div>
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <span class="fs-5 fw-semibold"><i class="bi bi-building"></i> UPDS Sede</span>
-                            <span class="badge bg-light text-dark">Activo</span>
-                        </div>
-                        <h4 class="mb-1">Gestión Principal</h4>
-                        <p class="mb-4 opacity-75">Control de Accesos y Llaves</p>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-end mt-4">
-                        <div>
-                            <small class="opacity-75 d-block">Total Llaves Registradas</small>
-                            <span class="fs-3 fw-bold">1,248</span>
-                        </div>
-                        <i class="bi bi-key-fill fs-1 opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tarjeta 2 -->
-            <div class="col-md-6">
-                <div class="ui-card text-center d-flex flex-column justify-content-center">
-                    <p class="card-title text-muted mb-2">Préstamos Activos</p>
-                    <h2 class="big-number mb-1">45</h2>
-                    <p class="number-subtitle mb-4">Al @DateTime.Now.ToString("dd 'de' MMMM, HH:mm")</p>
-                    
-                    <div class="d-flex justify-content-center gap-3 mt-2">
-                        <button class="btn btn-light rounded-3 px-4 py-2 border">
-                            <i class="bi bi-box-arrow-right d-block mb-1 fs-5"></i>
-                            Prestar
-                        </button>
-                        <button class="btn btn-light rounded-3 px-4 py-2 border">
-                            <i class="bi bi-box-arrow-in-left d-block mb-1 fs-5 text-success"></i>
-                            Recibir
-                        </button>
-                    </div>
-                </div>
-            </div>
+    <!-- 4 KPI Cards -->
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h6 class="text-muted">Total Llaves</h6>
+            <h2 class="fw-bold mb-0 text-primary" id="kpiTotalLlaves">...</h2>
         </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h6 class="text-muted">Llaves Disponibles</h6>
+            <h2 class="fw-bold mb-0 text-success" id="kpiLlavesDisponibles">...</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h6 class="text-muted">Llaves Prestadas</h6>
+            <h2 class="fw-bold mb-0 text-warning" id="kpiLlavesPrestadas">...</h2>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm text-center p-3">
+            <h6 class="text-muted">Préstamos Activos</h6>
+            <h2 class="fw-bold mb-0 text-info" id="kpiPrestamosActivos">...</h2>
+        </div>
+    </div>
+</div>
 
-        <!-- Tabla Actividad Reciente -->
-        <div class="ui-card">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="card-title mb-0">Actividad Reciente</h5>
-                <a href="#" class="text-decoration-none text-muted small">Ver todo <i class="bi bi-chevron-right"></i></a>
+<div class="row g-4 mb-4">
+    <!-- Gráfica de línea (7 días) -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Préstamos de la Semana</h5>
             </div>
-            
-            <div class="table-responsive">
-                <table class="table table-borderless align-middle">
-                    <thead>
-                        <tr>
-                            <th>Usuario / Persona</th>
-                            <th>Llave / Ambiente</th>
-                            <th>Fecha y Hora</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-light rounded-3 p-2 text-primary">
-                                        <i class="bi bi-person-circle fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-semibold">Juan Pérez</h6>
-                                        <small class="text-muted">Docente</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">L-302</h6>
-                                <small class="text-muted">Laboratorio Redes</small>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">Hoy, 10:15 AM</h6>
-                            </td>
-                            <td>
-                                <span class="status-badge status-warning">Prestado</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-light rounded-3 p-2 text-success">
-                                        <i class="bi bi-person-circle fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-semibold">Ana Gómez</h6>
-                                        <small class="text-muted">Administrativo</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">A-105</h6>
-                                <small class="text-muted">Aula Común</small>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">Ayer, 18:30 PM</h6>
-                            </td>
-                            <td>
-                                <span class="status-badge status-success">Devuelto</span>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-light rounded-3 p-2 text-primary">
-                                        <i class="bi bi-person-circle fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-semibold">Carlos Ruiz</h6>
-                                        <small class="text-muted">Estudiante</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">AUD-1</h6>
-                                <small class="text-muted">Auditorio Principal</small>
-                            </td>
-                            <td>
-                                <h6 class="mb-0 fw-semibold">Ayer, 09:20 AM</h6>
-                            </td>
-                            <td>
-                                <span class="status-badge status-warning">Prestado</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="card-body">
+                <canvas id="prestamosChart" style="max-height: 300px;"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Columna Derecha (Estadísticas secundarias) -->
+    <!-- Gráfica donut de estado de llaves -->
     <div class="col-lg-4">
-        <!-- Gráfico circular (simulado con HTML/CSS) -->
-        <div class="ui-card mb-4 text-center">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="card-title mb-0">Uso de Ambientes</h5>
-                <i class="bi bi-three-dots text-muted"></i>
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Estado de Llaves</h5>
             </div>
-            
-            <!-- Simulación de Dona Chart -->
-            <div class="position-relative d-inline-block mt-3 mb-4">
-                <svg width="160" height="160" viewBox="0 0 160 160">
-                    <circle cx="80" cy="80" r="70" fill="none" stroke="#f1f5f9" stroke-width="15" />
-                    <circle cx="80" cy="80" r="70" fill="none" stroke="#0369a1" stroke-width="15" stroke-dasharray="330" stroke-dashoffset="80" stroke-linecap="round" transform="rotate(-90 80 80)" />
-                </svg>
-                <div class="position-absolute top-50 start-50 translate-middle text-center">
-                    <h3 class="mb-0 fw-bold">75%</h3>
-                    <small class="text-muted">Ocupación</small>
-                </div>
-            </div>
-            
-            <div class="bg-light rounded-3 p-3">
-                <small class="text-muted d-block text-uppercase fw-semibold mb-1">Total Ambientes Usados</small>
-                <span class="fs-5 fw-bold text-dark">120 / 160</span>
+            <div class="card-body d-flex justify-content-center align-items-center">
+                <canvas id="estadoLlavesChart" style="max-height: 250px;"></canvas>
             </div>
         </div>
-        
-        <!-- Alertas / Notificaciones pendientes -->
-        <div class="ui-card">
-            <h5 class="card-title mb-4">Alertas Pendientes</h5>
-            
-            <div class="d-flex align-items-start gap-3 mb-3 border-bottom pb-3">
-                <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-2">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                </div>
-                <div>
-                    <h6 class="mb-1 fw-semibold">Llave no devuelta</h6>
-                    <p class="text-muted small mb-0">La llave L-205 debió devolverse a las 12:00.</p>
-                </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Tabla Actividad Reciente -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Actividad Reciente</h5>
+                <a asp-controller="Prestamos" asp-action="Index" class="text-decoration-none text-muted small">Ver todo <i class="bi bi-chevron-right"></i></a>
             </div>
-            
-            <div class="d-flex align-items-start gap-3">
-                <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2">
-                    <i class="bi bi-clock-history"></i>
-                </div>
-                <div>
-                    <h6 class="mb-1 fw-semibold">Reserva próxima</h6>
-                    <p class="text-muted small mb-0">Reserva de Auditorio 2 por confirmar a las 15:00.</p>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover table-bordered align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Usuario / Persona</th>
+                                <th>Llave / Ambiente</th>
+                                <th>Fecha y Hora</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="actividadRecienteTable">
+                            <tr><td colspan="4" class="text-center text-muted">Cargando actividad...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Fetch KPIs
+            fetch('/api/dashboard/kpis')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('kpiTotalLlaves').innerText = data.totalLlaves;
+                    document.getElementById('kpiLlavesDisponibles').innerText = data.llavesDisponibles;
+                    document.getElementById('kpiLlavesPrestadas').innerText = data.llavesPrestadas;
+                    document.getElementById('kpiPrestamosActivos').innerText = data.prestamosActivos;
+                })
+                .catch(err => console.error("Error cargando KPIs", err));
+
+            // 2. Fetch Préstamos Semana (Line Chart)
+            fetch('/api/dashboard/prestamos-semana')
+                .then(r => r.json())
+                .then(data => {
+                    const ctx = document.getElementById('prestamosChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                label: 'Préstamos Registrados',
+                                data: data.valores,
+                                borderColor: '#0369a1',
+                                backgroundColor: 'rgba(3, 105, 161, 0.1)',
+                                tension: 0.3,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: { beginAtZero: true, ticks: { precision: 0 } }
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.error("Error cargando gráfica de línea", err));
+
+            // 3. Fetch Estado de Llaves (Donut Chart)
+            fetch('/api/dashboard/estado-llaves')
+                .then(r => r.json())
+                .then(data => {
+                    const ctx = document.getElementById('estadoLlavesChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.labels,
+                            datasets: [{
+                                data: data.valores,
+                                backgroundColor: data.colores,
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.error("Error cargando gráfica donut", err));
+
+            // 4. Fetch Actividad Reciente
+            fetch('/api/dashboard/actividad-reciente?limit=8')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('actividadRecienteTable');
+                    tbody.innerHTML = '';
+                    if (!data.data || data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No hay actividad reciente</td></tr>';
+                        return;
+                    }
+
+                    data.data.forEach(item => {
+                        let personaName = item.persona || "Desconocido";
+                        let llaveCodigo = item.llave || "-";
+                        let ambienteNom = item.ambiente || "-";
+                        let fechaStr = new Date(item.fecha).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                        let estadoTexto = item.estadoTexto || item.estado;
+
+                        // Determinar estilo base al estado
+                        let badgeClass = "bg-secondary";
+                        let iconClass = "bi-circle";
+                        let textClass = "text-secondary";
+
+                        if (estadoTexto === "Prestado") { 
+                            badgeClass = "bg-warning text-dark"; textClass = "text-warning"; iconClass = "bi-key"; 
+                        } else if (estadoTexto === "Devuelto") { 
+                            badgeClass = "bg-success"; textClass = "text-success"; iconClass = "bi-check-circle"; 
+                        } else if (estadoTexto === "Vencido") { 
+                            badgeClass = "bg-danger"; textClass = "text-danger"; iconClass = "bi-exclamation-circle"; 
+                        } else if (estadoTexto === "Cancelado") {
+                            badgeClass = "bg-secondary text-white"; textClass = "text-secondary"; iconClass = "bi-x-circle";
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-light rounded-3 p-2 ${textClass}">
+                                        <i class="bi bi-person-circle fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">${personaName}</h6>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <h6 class="mb-0 fw-semibold">${llaveCodigo}</h6>
+                                <small class="text-muted">${ambienteNom}</small>
+                            </td>
+                            <td>
+                                <span>${fechaStr}</span>
+                            </td>
+                            <td>
+                                <span class="badge ${badgeClass}"><i class="bi ${iconClass} me-1"></i> ${estadoTexto}</span>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(err => {
+                    console.error("Error cargando actividad reciente", err);
+                    document.getElementById('actividadRecienteTable').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error al cargar actividad</td></tr>';
+                });
+        });
+    </script>
+}

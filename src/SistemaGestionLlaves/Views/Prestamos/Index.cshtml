@@ -23,7 +23,14 @@
 <!-- Filtros -->
 <div class="ui-card mb-4">
     <div class="row g-3 align-items-end">
-        <div class="col-md-4">
+        <div class="col-md-5">
+            <label class="form-label fw-600" style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Buscar</label>
+            <div class="input-group">
+                <span class="input-group-text border-end-0 bg-light"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="filtroBuscar" class="form-control border-start-0" style="background:#f8fafc;" placeholder="Buscar persona, CI o llave...">
+            </div>
+        </div>
+        <div class="col-md-3">
             <label class="form-label fw-600"
                    style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">Estado</label>
             <select id="filtroEstado" class="form-select"
@@ -36,11 +43,11 @@
             </select>
         </div>
         <div class="col-md-4 d-flex gap-2">
-            <button onclick="cargarPrestamos()" class="btn px-4 py-2"
+            <button onclick="currentPage=1; cargarPrestamos()" class="btn px-4 py-2"
                     style="background:#0369a1; color:white; border-radius:12px; font-weight:600; border:none;">
                 <i class="bi bi-funnel me-1"></i>Filtrar
             </button>
-            <button onclick="document.getElementById('filtroEstado').value=''; cargarPrestamos();"
+            <button onclick="document.getElementById('filtroEstado').value=''; document.getElementById('filtroBuscar').value=''; currentPage=1; cargarPrestamos();"
                     class="btn px-4 py-2"
                     style="background:#f1f5f9; color:#64748b; border-radius:12px; font-weight:600; border:none;">
                 <i class="bi bi-x-circle me-1"></i>Limpiar
@@ -66,8 +73,8 @@
     </div>
 
     <div class="table-responsive" id="tablaWrapper" style="display:none;">
-        <table class="table table-borderless mb-0">
-            <thead>
+        <table class="table table-striped table-hover table-bordered align-middle">
+            <thead class="table-dark">
                 <tr>
                     <th>#</th>
                     <th>Llave</th>
@@ -75,7 +82,7 @@
                     <th>Fecha Préstamo</th>
                     <th>Devolución Esperada</th>
                     <th>Estado</th>
-                    <th style="text-align:right;">Acciones</th>
+                    <th class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody id="tablaPrestamos"></tbody>
@@ -145,8 +152,9 @@
 
     async function cargarPrestamos() {
         const estado = document.getElementById('filtroEstado').value;
+        const buscar = document.getElementById('filtroBuscar')?.value || '';
         const pageQuery = `page=${currentPage}&pageSize=${pageSize}`;
-        const url = `/api/prestamos?${pageQuery}${estado ? '&estado=' + estado : ''}`;
+        const url = `/api/prestamos?${pageQuery}${estado ? '&estado=' + estado : ''}${buscar ? '&buscar=' + encodeURIComponent(buscar) : ''}`;
 
         document.getElementById('loadingSpinner').style.display = '';
         document.getElementById('tablaWrapper').style.display = 'none';
@@ -251,6 +259,18 @@
         setTimeout(() => document.getElementById(id)?.remove(), 4000);
     }
 
-    document.addEventListener('DOMContentLoaded', cargarPrestamos);
+    document.addEventListener('DOMContentLoaded', () => {
+        cargarPrestamos();
+        const buscarInput = document.getElementById('filtroBuscar');
+        if (buscarInput) {
+            buscarInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    currentPage = 1;
+                    cargarPrestamos();
+                }
+            });
+        }
+    });
 </script>
 }

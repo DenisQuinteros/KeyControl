@@ -4,6 +4,7 @@ using SistemaGestionLlaves.Models;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json.Serialization;
+using System.Security.Claims;
 
 namespace SistemaGestionLlaves.Data;
 
@@ -39,7 +40,17 @@ public class AuditInterceptor : SaveChangesInterceptor
 
         if (!entries.Any()) return;
 
-        var usuario = _httpContextAccessor.HttpContext?.User?.Identity?.Name ?? "Sistema";
+        int? idUsuario = null;
+        var httpUser = _httpContextAccessor.HttpContext?.User;
+        if (httpUser?.Identity?.IsAuthenticated == true)
+        {
+            var idClaim = httpUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(idClaim, out var parsedId))
+            {
+                idUsuario = parsedId;
+            }
+        }
+
         var auditorias = new List<Auditoria>();
 
         var jsonOptions = new JsonSerializerOptions 
@@ -52,9 +63,9 @@ public class AuditInterceptor : SaveChangesInterceptor
         {
             var auditoria = new Auditoria
             {
-                Tabla = entry.Metadata.GetTableName() ?? entry.Entity.GetType().Name,
-                Usuario = usuario,
-                Fecha = DateTime.UtcNow
+                TablaAfectada = entry.Metadata.GetTableName() ?? entry.Entity.GetType().Name,
+                IdUsuario = idUsuario,
+                FechaHora = DateTime.UtcNow
             };
 
             var antes = new Dictionary<string, object?>();
@@ -83,19 +94,19 @@ public class AuditInterceptor : SaveChangesInterceptor
             if (entry.State == EntityState.Added)
             {
                 auditoria.Operacion = "INSERT";
-                auditoria.DatosDespues = JsonSerializer.Serialize(despues, jsonOptions);
+                auditoria.DatosNuevos = JsonSerializer.Serialize(despues, jsonOptions);
             }
             else if (entry.State == EntityState.Deleted)
             {
                 auditoria.Operacion = "DELETE";
-                auditoria.DatosAntes = JsonSerializer.Serialize(antes, jsonOptions);
+                auditoria.DatosAnteriores = JsonSerializer.Serialize(antes, jsonOptions);
             }
             else if (entry.State == EntityState.Modified)
             {
                 if (!antes.Any()) continue;
                 auditoria.Operacion = "UPDATE";
-                auditoria.DatosAntes = JsonSerializer.Serialize(antes, jsonOptions);
-                auditoria.DatosDespues = JsonSerializer.Serialize(despues, jsonOptions);
+                auditoria.DatosAnteriores = JsonSerializer.Serialize(antes, jsonOptions);
+                auditoria.DatosNuevos = JsonSerializer.Serialize(despues, jsonOptions);
             }
 
             auditorias.Add(auditoria);

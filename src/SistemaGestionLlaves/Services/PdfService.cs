@@ -16,27 +16,29 @@ public class PdfService : IPdfService
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.Margin(30);
-                page.DefaultTextStyle(x => x.FontSize(10));
+                page.Margin(40);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
 
                 // 1. Header
-                page.Header().Row(row =>
+                page.Header().PaddingBottom(20).Row(row =>
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        col.Item().Text(titulo).FontSize(18).SemiBold().FontColor(Colors.Blue.Darken3);
-                        col.Item().Text("Sistema de Gestión de Llaves").FontSize(10).Italic().FontColor(Colors.Grey.Medium);
+                        col.Item().Text("KeyControl").FontSize(24).Bold().FontColor(Colors.Blue.Darken3);
+                        col.Item().Text("Sistema de Gestión de Llaves").FontSize(11).FontColor(Colors.Grey.Darken2);
+                        col.Item().PaddingTop(10).Text(titulo).FontSize(16).Bold().FontColor(Colors.Black);
                     });
 
                     row.RelativeItem().AlignRight().Column(col =>
                     {
-                        col.Item().Text($"Fecha: {DateTime.Now:dd/MM/yyyy HH:mm}").FontSize(10);
-                        col.Item().Text("Reporte Administrativo").FontSize(10).SemiBold();
+                        col.Item().Text($"Fecha de Generación: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
+                        col.Item().Text($"Hora: {DateTime.Now:HH:mm}").FontSize(10);
+                        col.Item().PaddingTop(10).Text("Reporte Institucional").FontSize(11).Bold().FontColor(Colors.Blue.Darken2);
                     });
                 });
 
                 // 2. Content (Table)
-                page.Content().PaddingTop(15).Table(table =>
+                page.Content().Table(table =>
                 {
                     table.ColumnsDefinition(columns =>
                     {
@@ -61,10 +63,6 @@ public class PdfService : IPdfService
                     {
                         var properties = item!.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
                         
-                        // We assume the DTO properties match the header count or 
-                        // we use a specific selection if needed.
-                        // For simplicity in this implementation, we take all public properties.
-                        
                         foreach (var prop in properties)
                         {
                             var value = prop.GetValue(item)?.ToString() ?? "-";
@@ -81,12 +79,19 @@ public class PdfService : IPdfService
                 });
 
                 // 3. Footer
-                page.Footer().AlignCenter().Text(x =>
+                page.Footer().PaddingTop(10).BorderTop(1).BorderColor(Colors.Grey.Lighten2).Row(row =>
                 {
-                    x.Span("Página ");
-                    x.CurrentPageNumber();
-                    x.Span(" de ");
-                    x.TotalPages();
+                    row.RelativeItem().AlignLeft().Text($"KeyControl - Sistema de Gestión de Llaves © {DateTime.Now.Year}").FontSize(9).FontColor(Colors.Grey.Darken1);
+                    
+                    row.RelativeItem().AlignCenter().Text(x =>
+                    {
+                        x.Span("Página ").FontSize(9).FontColor(Colors.Grey.Darken1);
+                        x.CurrentPageNumber().FontSize(9).FontColor(Colors.Grey.Darken1);
+                        x.Span(" de ").FontSize(9).FontColor(Colors.Grey.Darken1);
+                        x.TotalPages().FontSize(9).FontColor(Colors.Grey.Darken1);
+                    });
+                    
+                    row.RelativeItem().AlignRight().Text("Uso Interno").FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
             });
         }).GeneratePdf();
@@ -95,21 +100,26 @@ public class PdfService : IPdfService
     private static IContainer CellStyleHeader(IContainer container)
     {
         return container
-            .Background(Colors.Blue.Darken2)
+            .Background(Colors.Blue.Darken3)
+            .BorderBottom(2)
+            .BorderColor(Colors.Blue.Darken4)
             .PaddingVertical(8)
-            .PaddingHorizontal(5)
-            .DefaultTextStyle(x => x.SemiBold().FontColor(Colors.White))
-            .AlignCenter();
+            .PaddingHorizontal(8)
+            .DefaultTextStyle(x => x.Bold().FontColor(Colors.White).FontSize(10))
+            .AlignLeft()
+            .AlignMiddle();
     }
 
     private static IContainer CellStyleBody(IContainer container, bool isEven)
     {
         return container
             .Background(isEven ? Colors.White : Colors.Grey.Lighten4)
-            .PaddingVertical(6)
-            .PaddingHorizontal(5)
             .BorderBottom(1)
             .BorderColor(Colors.Grey.Lighten2)
+            .PaddingVertical(6)
+            .PaddingHorizontal(8)
+            .DefaultTextStyle(x => x.FontSize(9).FontColor(Colors.Black))
+            .AlignLeft()
             .AlignMiddle();
     }
 }
